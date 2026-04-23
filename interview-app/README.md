@@ -23,13 +23,17 @@ Single-page **Interview Prep** practice app: pick interviewer persona (Marissa /
 
    - **`VITE_VAPI_PUBLIC_KEY`** — from the [Vapi dashboard](https://dashboard.vapi.ai/) (API keys → public key used for web clients).
 
-   Optional, for remote session logging:
+  Required for report scoring:
+
+  - **`GEMINI_API_KEY`** — server-side key used by the local `/api/gemini-score` route for Gemini feedback.
+
+  Optional, for remote session logging:
 
    - **`VITE_SUPABASE_URL`**
    - **`VITE_SUPABASE_ANON_KEY`**  
    If you use Supabase, create an `interview_sessions` table as described in `src/lib/sessionPersistence.ts`.
 
-4. **Start the dev server**:
+4. **Start or restart the dev server** (required after env changes):
 
    ```bash
    npm run dev

@@ -4,7 +4,7 @@ import { buildSystemPrompt } from './buildSystemPrompt'
 
 const FIRST_MESSAGE: Record<InterviewCharacter, string> = {
   'tech-lead':
-    "Hi — I'm Marissa, your tech lead for this interviewsession. I'll ask three short behavioral questions using STAR, with quick micro-feedback after each answer. Let's begin.",
+    "Hi — I'm Marissa, your tech lead for this interview session. I'll run three behavioral STAR questions and give a brief micro-feedback line after each answer. Ready to start.",
   'hiring-manager':
     "Hi — I'm Paul, your hiring manager for this interview session. I'll run three behavioral STAR questions and give a brief micro-feedback line after each answer. Ready to start.",
 }

@@ -1,41 +1,37 @@
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
-
-let workerConfigured = false
-
-function ensurePdfWorker() {
-  if (!workerConfigured) {
-    GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url,
-    ).toString()
-    workerConfigured = true
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer)
+  const chunkSize = 0x8000
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode(...chunk)
   }
-}
-
-async function extractPdfText(file: File): Promise<string> {
-  ensurePdfWorker()
-  const data = await file.arrayBuffer()
-  const pdf = await getDocument({ data }).promise
-  const parts: string[] = []
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const content = await page.getTextContent()
-    const strings = (content.items as { str?: string }[])
-      .map((item) => (typeof item.str === 'string' ? item.str : ''))
-      .filter(Boolean)
-    parts.push(strings.join(' '))
-  }
-  return parts.join('\n').replace(/\s+/g, ' ').trim()
+  return btoa(binary)
 }
 
 export async function parseResumeFile(file: File): Promise<string> {
   const name = file.name.toLowerCase()
-  const isPdf =
-    file.type === 'application/pdf' || name.endsWith('.pdf')
-
-  if (isPdf) {
-    return extractPdfText(file)
+  const isPdf = file.type === 'application/pdf' || name.endsWith('.pdf')
+  if (!isPdf) {
+    throw new Error('Only PDF resumes are supported.')
   }
 
-  return (await file.text()).trim()
+  const pdfBase64 = arrayBufferToBase64(await file.arrayBuffer())
+  const response = await fetch('/api/gemini-resume', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pdfBase64 }),
+  })
+
+  if (!response.ok) {
+    throw new Error(
+      `Resume parsing failed (${response.status}). Check GEMINI_API_KEY and try another PDF.`,
+    )
+  }
+
+  const payload = (await response.json()) as { text?: unknown }
+  if (typeof payload.text !== 'string' || !payload.text.trim()) {
+    throw new Error('No resume text was extracted from this PDF.')
+  }
+  return payload.text.trim()
 }

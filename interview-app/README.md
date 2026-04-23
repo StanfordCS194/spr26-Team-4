@@ -1,6 +1,6 @@
 # InterviewApp (prototype)
 
-Single-page **Interview Prep** practice app: pick interviewer persona (Marissa / Paul), upload resume text (PDF or `.txt`), run a voice session via **Vapi**, then see a short post-call report. Sessions are saved to **localStorage**; **Supabase** is optional.
+Single-page **Interview Prep** practice app: pick interviewer persona (Marissa / Paul), upload a resume PDF, run a voice session via **Vapi**, then see a short post-call report. Sessions are saved to **localStorage**; **Supabase** is optional.
 
 ## Run it locally (right now)
 
@@ -23,9 +23,9 @@ Single-page **Interview Prep** practice app: pick interviewer persona (Marissa /
 
    - **`VITE_VAPI_PUBLIC_KEY`** — from the [Vapi dashboard](https://dashboard.vapi.ai/) (API keys → public key used for web clients).
 
-  Required for report scoring:
+  Required for Gemini features (resume parsing + report scoring):
 
-  - **`GEMINI_API_KEY`** — server-side key used by the local `/api/gemini-score` route for Gemini feedback.
+  - **`GEMINI_API_KEY`** — server-side key used by local `/api/gemini-score` and `/api/gemini-resume` routes.
 
   Optional, for remote session logging:
 
@@ -41,7 +41,7 @@ Single-page **Interview Prep** practice app: pick interviewer persona (Marissa /
 
 5. **Open the app** in your browser at the URL Vite prints (usually `http://localhost:5173`). Allow **microphone** access when the browser asks so the call can run.
 
-You can click **Start practice** without a resume (the assistant will note missing resume text). Uploading a resume injects that text into the system prompt.
+You can click **Start practice** without a resume (the assistant will note missing resume text). Uploading a PDF sends it to Gemini for text extraction, and that extracted text is injected into the system prompt.
 
 ### Other commands
 
@@ -54,4 +54,4 @@ You can click **Start practice** without a resume (the assistant will note missi
 
 ## Stack (short)
 
-React (Vite), Tailwind CSS, Lucide icons, `@vapi-ai/web`, optional `@supabase/supabase-js`, `pdfjs-dist` for PDF text extraction.
+React (Vite), Tailwind CSS, Lucide icons, `@vapi-ai/web`, Gemini API (server-side proxy), optional `@supabase/supabase-js`.

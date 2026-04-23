@@ -157,7 +157,7 @@ export default function App() {
       const text = await parseResumeFile(file)
       setResumeText(text)
       if (!text.trim()) {
-        setParseError('No text could be read from that file. Try a text resume or another PDF.')
+        setParseError('No text could be read from that PDF. Try another PDF.')
       }
     } catch (e) {
       setResumeText('')
@@ -375,7 +375,7 @@ export default function App() {
             Interview Prep
           </h1>
           <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-400 sm:text-base">
-            Voice practice with Vapi: pick an interviewer, upload your resume text, then run a
+            Voice practice with Vapi: pick an interviewer, upload your resume PDF, then run a
             three-question behavioral session with STAR and micro-feedback.
           </p>
         </header>
@@ -463,7 +463,7 @@ export default function App() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.txt,text/plain,application/pdf"
+              accept=".pdf,application/pdf"
               className="hidden"
               onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
             />
@@ -475,7 +475,7 @@ export default function App() {
                 className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 disabled:opacity-50"
               >
                 <Upload className="h-4 w-4" aria-hidden />
-                {parsing ? 'Reading…' : 'Upload PDF or text'}
+                {parsing ? 'Reading PDF…' : 'Upload PDF'}
               </button>
               {resumeFileName && (
                 <span className="text-sm text-slate-400">

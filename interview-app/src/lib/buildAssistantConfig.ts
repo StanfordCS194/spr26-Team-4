@@ -28,8 +28,8 @@ export function buildAssistantConfig(
       language: 'en',
     },
     model: {
-      provider: 'openai',
-      model: 'gpt-4o-mini',
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-20250514',
       messages: [{ role: 'system', content: system }],
     },
     voice: {

@@ -1,11 +1,13 @@
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 
 let workerConfigured = false
 
 function ensurePdfWorker() {
   if (!workerConfigured) {
-    GlobalWorkerOptions.workerSrc = workerUrl
+    GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url,
+    ).toString()
     workerConfigured = true
   }
 }

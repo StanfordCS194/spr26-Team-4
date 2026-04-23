@@ -1,10 +1,15 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Briefcase,
+  ChevronLeft,
+  ChevronDown,
+  Download,
+  History,
   Mic,
   MicOff,
   PhoneOff,
   Sparkles,
+  Trash2,
   Upload,
   User,
 } from 'lucide-react'
@@ -12,6 +17,11 @@ import { VoiceOrb } from './components/VoiceOrb'
 import { useVapiInterview } from './hooks/useVapiInterview'
 import type { InterviewCharacter } from './lib/buildSystemPrompt'
 import { parseResumeFile } from './lib/parseResumeFile'
+import {
+  loadSessions,
+  deleteSession as deleteSessionLocal,
+  type InterviewSessionRecord,
+} from './lib/sessionPersistence'
 
 const CHARACTERS: {
   id: InterviewCharacter
@@ -33,6 +43,56 @@ const CHARACTERS: {
   },
 ]
 
+const CHARACTER_LABELS: Record<string, string> = {
+  'tech-lead': 'Tech Lead',
+  'hiring-manager': 'Hiring Manager',
+}
+
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function downloadSessionFile(s: InterviewSessionRecord) {
+  const lines = [
+    'Interview Session Report',
+    '========================',
+    `Date:       ${formatDate(s.createdAt)}`,
+    `Character:  ${CHARACTER_LABELS[s.character] ?? s.character}`,
+    `Duration:   ${s.durationSeconds}s`,
+    '',
+    'Scores',
+    '------',
+    `Clarity:    ${s.clarityScore}/10`,
+    `Confidence: ${s.confidenceRating}/10`,
+    `Sentiment:  ${s.sentiment}`,
+    '',
+    'Top 3 Improvements',
+    '------------------',
+    ...s.topImprovements.map((t, i) => `${i + 1}. ${t}`),
+    '',
+    'Transcript Summary',
+    '------------------',
+    s.transcriptSummary || '—',
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `interview-${new Date(s.createdAt).toISOString().slice(0, 10)}-${s.id.slice(0, 6)}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+type SortBy = 'date' | 'clarity' | 'confidence'
+type AppView = 'main' | 'past-sessions' | 'past-detail'
+
 export default function App() {
   const [character, setCharacter] = useState<InterviewCharacter>('tech-lead')
   const [resumeText, setResumeText] = useState('')
@@ -40,6 +100,11 @@ export default function App() {
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [appView, setAppView] = useState<AppView>('main')
+  const [selectedSession, setSelectedSession] = useState<InterviewSessionRecord | null>(null)
+  const [savedSessions, setSavedSessions] = useState<InterviewSessionRecord[]>(() => loadSessions())
+  const [sortBy, setSortBy] = useState<SortBy>('date')
 
   const {
     phase,
@@ -54,6 +119,34 @@ export default function App() {
     toggleMute,
     resetToSetup,
   } = useVapiInterview()
+
+  // Refresh saved sessions whenever returning to setup phase
+  useEffect(() => {
+    if (phase === 'setup') {
+      setSavedSessions(loadSessions())
+    }
+  }, [phase])
+
+  const refreshSessions = useCallback(() => {
+    setSavedSessions(loadSessions())
+  }, [])
+
+  const handleDelete = useCallback(
+    (id: string, afterDelete?: () => void) => {
+      if (!window.confirm('Are you sure you want to delete this session? This cannot be undone.')) return
+      deleteSessionLocal(id)
+      refreshSessions()
+      afterDelete?.()
+    },
+    [refreshSessions],
+  )
+
+  const sortedSessions = useMemo(() => {
+    const copy = [...savedSessions]
+    if (sortBy === 'clarity') return copy.sort((a, b) => b.clarityScore - a.clarityScore)
+    if (sortBy === 'confidence') return copy.sort((a, b) => b.confidenceRating - a.confidenceRating)
+    return copy // already stored newest-first
+  }, [savedSessions, sortBy])
 
   const onPickFile = useCallback(async (file: File | null) => {
     if (!file) return
@@ -76,6 +169,200 @@ export default function App() {
 
   const vapiConfigured = Boolean(import.meta.env.VITE_VAPI_PUBLIC_KEY)
 
+  // ── Past sessions list ────────────────────────────────────────────────────
+  if (appView === 'past-sessions') {
+    return (
+      <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
+        <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
+          <div className="mb-8 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setAppView('main')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Back
+            </button>
+            <h1 className="text-xl font-semibold text-white">Previous Sessions</h1>
+          </div>
+
+          {savedSessions.length === 0 ? (
+            <p className="text-center text-slate-400">No sessions recorded yet.</p>
+          ) : (
+            <>
+              {/* Sort control */}
+              <div className="mb-5 flex items-center gap-3">
+                <label htmlFor="sort-select" className="text-xs text-slate-400 whitespace-nowrap">
+                  Sort by
+                </label>
+                <div className="relative">
+                  <select
+                    id="sort-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortBy)}
+                    className="appearance-none rounded-xl border border-white/15 bg-white/10 py-2 pl-4 pr-9 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-400/60"
+                  >
+                    <option value="date">Date (newest first)</option>
+                    <option value="clarity">Clarity (highest first)</option>
+                    <option value="confidence">Confidence (highest first)</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {sortedSessions.map((s) => (
+                  <div
+                    key={s.id}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/20 backdrop-blur transition hover:border-violet-400/30"
+                  >
+                    {/* Clickable summary area */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSession(s)
+                        setAppView('past-detail')
+                      }}
+                      className="w-full rounded-t-2xl px-5 pt-4 pb-3 text-left"
+                    >
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-white">
+                          {CHARACTER_LABELS[s.character] ?? s.character}
+                        </span>
+                        <span className="text-xs text-slate-500">{formatDate(s.createdAt)}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-slate-400">
+                        <span>Duration: <span className="text-slate-300">{s.durationSeconds}s</span></span>
+                        <span>Clarity: <span className="text-violet-300">{s.clarityScore}/10</span></span>
+                        <span>Confidence: <span className="text-indigo-300">{s.confidenceRating}/10</span></span>
+                        <span className="capitalize">Sentiment: <span className="text-slate-300">{s.sentiment}</span></span>
+                      </div>
+                    </button>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 border-t border-white/5 px-5 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => downloadSessionFile(s)}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/30"
+                      >
+                        <Download className="h-3.5 w-3.5" aria-hidden />
+                        Download
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/25"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Past session detail ───────────────────────────────────────────────────
+  if (appView === 'past-detail' && selectedSession) {
+    const s = selectedSession
+    return (
+      <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
+        <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
+          <div className="mb-8 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setAppView('past-sessions')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+              Back
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-white">
+                {CHARACTER_LABELS[s.character] ?? s.character}
+              </h1>
+              <p className="text-xs text-slate-500">{formatDate(s.createdAt)}</p>
+            </div>
+          </div>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/30 backdrop-blur">
+            <h2 className="mb-6 text-center text-xl font-semibold text-white">
+              Post-interview report
+            </h2>
+            <div className="mb-6 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Duration</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{s.durationSeconds}s</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Clarity score</p>
+                <p className="mt-1 text-2xl font-semibold text-violet-300">{s.clarityScore}/10</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Confidence</p>
+                <p className="mt-1 text-2xl font-semibold text-indigo-300">{s.confidenceRating}/10</p>
+              </div>
+            </div>
+            <div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment (heuristic)</p>
+              <p className="mt-1 capitalize text-slate-200">{s.sentiment}</p>
+            </div>
+            <div className="mb-6">
+              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
+                Top 3 improved points
+              </p>
+              <ul className="list-inside list-decimal space-y-2 text-sm leading-relaxed text-slate-300">
+                {s.topImprovements.map((t, i) => (
+                  <li key={i} className="text-pretty">{t}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
+                Transcript summary
+              </p>
+              <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words text-left text-xs leading-relaxed text-slate-400">
+                {s.transcriptSummary || '—'}
+              </pre>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => downloadSessionFile(s)}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-5 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                Download report
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleDelete(s.id, () => {
+                    setSelectedSession(null)
+                    setAppView('past-sessions')
+                  })
+                }
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-300 transition hover:bg-rose-500/30"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                Delete session
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Main view ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
       <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
@@ -114,6 +401,22 @@ export default function App() {
             <code className="rounded bg-black/30 px-1.5 py-0.5">VITE_SUPABASE_ANON_KEY</code> to
             log sessions remotely.
           </p>
+        )}
+
+        {phase === 'setup' && savedSessions.length > 0 && (
+          <div className="mb-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                refreshSessions()
+                setAppView('past-sessions')
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20"
+            >
+              <History className="h-4 w-4" aria-hidden />
+              Review Previous Sessions
+            </button>
+          </div>
         )}
 
         {phase !== 'report' && (

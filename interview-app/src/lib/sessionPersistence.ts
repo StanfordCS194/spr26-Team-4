@@ -25,6 +25,15 @@ function readLocal(): InterviewSessionRecord[] {
   }
 }
 
+export function loadSessions(): InterviewSessionRecord[] {
+  return readLocal()
+}
+
+export function deleteSession(id: string): void {
+  const next = readLocal().filter((s) => s.id !== id)
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(next))
+}
+
 export function saveSessionLocal(record: InterviewSessionRecord) {
   const next = [record, ...readLocal()].slice(0, 50)
   localStorage.setItem(LOCAL_KEY, JSON.stringify(next))

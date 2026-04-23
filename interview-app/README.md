@@ -1,6 +1,6 @@
 # InterviewApp (prototype)
 
-Single-page **Interview Prep** practice app: pick interviewer persona (Emma / Jack), upload resume text (PDF or `.txt`), run a voice session via **Vapi**, then see a short post-call report. Sessions are saved to **localStorage**; **Supabase** is optional.
+Single-page **Interview Prep** practice app: pick interviewer persona (Marissa / Paul), upload resume text (PDF or `.txt`), run a voice session via **Vapi**, then see a short post-call report. Sessions are saved to **localStorage**; **Supabase** is optional.
 
 ## Run it locally (right now)
 

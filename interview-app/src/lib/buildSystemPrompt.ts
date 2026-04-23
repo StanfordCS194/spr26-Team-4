@@ -5,12 +5,12 @@ const PERSONA: Record<
   { name: string; title: string; voiceNote: string }
 > = {
   'tech-lead': {
-    name: 'Emma',
+    name: 'Marissa',
     title: 'Technical Lead',
     voiceNote: 'Sound like a senior engineering leader: precise, curious about depth, and focused on how the candidate thinks and collaborates.',
   },
   'hiring-manager': {
-    name: 'Jack',
+    name: 'Paul',
     title: 'Hiring Manager',
     voiceNote: 'Sound like a cross-functional hiring manager: business-aware, collaborative tone, and focused on outcomes and ownership.',
   },

@@ -1,5 +1,6 @@
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist'
 
+// Backend-flow adapter: this module handles resume file parsing concerns only.
 let workerConfigured = false
 
 function ensurePdfWorker() {

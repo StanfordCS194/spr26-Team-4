@@ -18,6 +18,7 @@ import {
   type InterviewSessionRecord,
 } from '../lib/sessionPersistence'
 
+// Backend-flow orchestration hook: manages Vapi lifecycle and report persistence.
 export type InterviewPhase = 'setup' | 'connecting' | 'in-call' | 'report'
 
 export type PostInterviewReport = {

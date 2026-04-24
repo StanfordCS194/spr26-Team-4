@@ -51,3 +51,9 @@ You can click **Start practice** without a resume (the assistant will note missi
 ## Stack (short)
 
 React (Vite), Tailwind CSS, Lucide icons, `@vapi-ai/web`, optional `@supabase/supabase-js`, `pdfjs-dist` for PDF text extraction.
+
+## Frontend vs backend-flow boundaries
+
+- **Frontend/UI**: [`src/App.tsx`](src/App.tsx), [`src/components/VoiceOrb.tsx`](src/components/VoiceOrb.tsx), and [`src/index.css`](src/index.css) handle rendering, visual states, and user interaction affordances.
+- **Backend-flow modules**: [`src/lib/parseResumeFile.ts`](src/lib/parseResumeFile.ts), [`src/lib/reportScoring.ts`](src/lib/reportScoring.ts), and [`src/lib/sessionPersistence.ts`](src/lib/sessionPersistence.ts) handle parsing, scoring, and persistence logic.
+- **Orchestration**: [`src/hooks/useVapiInterview.ts`](src/hooks/useVapiInterview.ts) coordinates call lifecycle/events and exposes UI-safe state for App.

@@ -2,6 +2,7 @@ const FILLERS = /\b(um|uh|like|you know|sort of|kind of)\b/gi
 const HEDGE =
   /\b(i think|maybe|probably|i guess|not sure|i'm not sure|i am not sure)\b/gi
 
+// Backend-flow adapter: transcript scoring and heuristic feedback generation.
 export function simpleSentiment(text: string): 'positive' | 'neutral' | 'negative' {
   const lower = text.toLowerCase()
   const pos = (

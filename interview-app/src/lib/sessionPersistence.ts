@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
+// Backend-flow adapter: local/remote persistence for completed interview sessions.
 export type InterviewSessionRecord = {
   id: string
   createdAt: string

@@ -48,6 +48,14 @@ const CHARACTER_LABELS: Record<string, string> = {
   'hiring-manager': 'Hiring Manager',
 }
 
+const PAGE_CLASS =
+  'min-h-svh bg-slate-950 bg-[radial-gradient(circle_at_15%_15%,_rgba(56,189,248,0.22),_transparent_35%),radial-gradient(circle_at_85%_10%,_rgba(167,139,250,0.22),_transparent_40%),linear-gradient(180deg,_#020617_0%,_#0f172a_45%,_#111827_100%)] text-slate-100'
+const SHELL_CLASS = 'mx-auto max-w-6xl px-4 py-10 pb-16 sm:px-6'
+const GLASS_CARD_CLASS =
+  'rounded-3xl border border-white/15 bg-white/[0.05] p-6 shadow-2xl shadow-black/35 backdrop-blur-md'
+const SECONDARY_BUTTON_CLASS =
+  'inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50'
+
 function formatDate(iso: string) {
   const d = new Date(iso)
   return d.toLocaleString(undefined, {
@@ -94,6 +102,7 @@ type SortBy = 'date' | 'clarity' | 'confidence'
 type AppView = 'main' | 'past-sessions' | 'past-detail'
 
 export default function App() {
+  // ── Frontend/UI state ─────────────────────────────────────────────────────
   const [character, setCharacter] = useState<InterviewCharacter>('tech-lead')
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
@@ -148,6 +157,7 @@ export default function App() {
     return copy // already stored newest-first
   }, [savedSessions, sortBy])
 
+  // ── Backend-flow handlers (trigger parsing/call orchestration) ────────────
   const onPickFile = useCallback(async (file: File | null) => {
     if (!file) return
     setParseError(null)
@@ -157,7 +167,7 @@ export default function App() {
       const text = await parseResumeFile(file)
       setResumeText(text)
       if (!text.trim()) {
-        setParseError('No text could be read from that file. Try a text resume or another PDF.')
+        setParseError('No text could be read from that file. Try another file.')
       }
     } catch (e) {
       setResumeText('')
@@ -168,17 +178,21 @@ export default function App() {
   }, [])
 
   const vapiConfigured = Boolean(import.meta.env.VITE_VAPI_PUBLIC_KEY)
+  const callError = error && error !== parseError ? error : null
+  const beginPractice = useCallback(() => {
+    void startCall(character, resumeText)
+  }, [character, resumeText, startCall])
 
   // ── Past sessions list ────────────────────────────────────────────────────
   if (appView === 'past-sessions') {
     return (
-      <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
-        <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
+      <div className={PAGE_CLASS}>
+        <div className={SHELL_CLASS}>
           <div className="mb-8 flex items-center gap-4">
             <button
               type="button"
               onClick={() => setAppView('main')}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
+              className={SECONDARY_BUTTON_CLASS}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
               Back
@@ -200,7 +214,7 @@ export default function App() {
                     id="sort-select"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortBy)}
-                    className="appearance-none rounded-xl border border-white/15 bg-white/10 py-2 pl-4 pr-9 text-sm text-white focus:outline-none focus:ring-1 focus:ring-violet-400/60"
+                    className="appearance-none rounded-xl border border-white/15 bg-white/10 py-2 pl-4 pr-9 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-400/50"
                   >
                     <option value="date">Date (newest first)</option>
                     <option value="clarity">Clarity (highest first)</option>
@@ -214,7 +228,7 @@ export default function App() {
                 {sortedSessions.map((s) => (
                   <div
                     key={s.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/20 backdrop-blur transition hover:border-violet-400/30"
+                    className="rounded-2xl border border-white/10 bg-white/[0.04] shadow-lg shadow-black/20 backdrop-blur transition hover:border-violet-400/40"
                   >
                     {/* Clickable summary area */}
                     <button
@@ -232,10 +246,18 @@ export default function App() {
                         <span className="text-xs text-slate-500">{formatDate(s.createdAt)}</span>
                       </div>
                       <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-                        <span>Duration: <span className="text-slate-300">{s.durationSeconds}s</span></span>
-                        <span>Clarity: <span className="text-violet-300">{s.clarityScore}/10</span></span>
-                        <span>Confidence: <span className="text-indigo-300">{s.confidenceRating}/10</span></span>
-                        <span className="capitalize">Sentiment: <span className="text-slate-300">{s.sentiment}</span></span>
+                        <span>
+                          Duration: <span className="text-slate-300">{s.durationSeconds}s</span>
+                        </span>
+                        <span>
+                          Clarity: <span className="text-violet-300">{s.clarityScore}/10</span>
+                        </span>
+                        <span>
+                          Confidence: <span className="text-indigo-300">{s.confidenceRating}/10</span>
+                        </span>
+                        <span className="capitalize">
+                          Sentiment: <span className="text-slate-300">{s.sentiment}</span>
+                        </span>
                       </div>
                     </button>
 
@@ -244,7 +266,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => downloadSessionFile(s)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/30 px-3 py-1.5 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/30"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/35 bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30"
                       >
                         <Download className="h-3.5 w-3.5" aria-hidden />
                         Download
@@ -252,7 +274,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => handleDelete(s.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/25"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/35 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/25"
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         Delete
@@ -272,13 +294,13 @@ export default function App() {
   if (appView === 'past-detail' && selectedSession) {
     const s = selectedSession
     return (
-      <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
-        <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
+      <div className={PAGE_CLASS}>
+        <div className={SHELL_CLASS}>
           <div className="mb-8 flex items-center gap-4">
             <button
               type="button"
               onClick={() => setAppView('past-sessions')}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15"
+              className={SECONDARY_BUTTON_CLASS}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
               Back
@@ -291,7 +313,7 @@ export default function App() {
             </div>
           </div>
 
-          <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/30 backdrop-blur">
+          <section className={GLASS_CARD_CLASS}>
             <h2 className="mb-6 text-center text-xl font-semibold text-white">
               Post-interview report
             </h2>
@@ -310,7 +332,7 @@ export default function App() {
               </div>
             </div>
             <div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment (heuristic)</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment</p>
               <p className="mt-1 capitalize text-slate-200">{s.sentiment}</p>
             </div>
             <div className="mb-6">
@@ -337,7 +359,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => downloadSessionFile(s)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-5 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-5 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/30"
               >
                 <Download className="h-4 w-4" aria-hidden />
                 Download report
@@ -350,7 +372,7 @@ export default function App() {
                     setAppView('past-sessions')
                   })
                 }
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-300 transition hover:bg-rose-500/30"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-500/30"
               >
                 <Trash2 className="h-4 w-4" aria-hidden />
                 Delete session
@@ -364,28 +386,47 @@ export default function App() {
 
   // ── Main view ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-svh bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-slate-950 text-slate-100">
-      <div className="mx-auto max-w-3xl px-4 py-10 pb-16">
-        <header className="mb-10 text-center">
-          <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-widest text-violet-200/90">
+    <div className={PAGE_CLASS}>
+      <div className={SHELL_CLASS}>
+        <header className="mb-10 text-center sm:mb-12">
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/25 bg-sky-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-sky-200/90">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            InterviewApp
+            Behavioral Interview Preparation
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Interview Prep
           </h1>
-          <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-400 sm:text-base">
-            Voice practice with Vapi: pick an interviewer, upload your resume text, then run a
-            three-question behavioral session with STAR and micro-feedback.
+          <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-slate-300 sm:text-base">
+            Practice with a voice interviewer in a focused dashboard: choose a persona, upload your
+            resume, and run a three-question STAR session with instant micro-feedback.
           </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
+              3-question format
+            </span>
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
+              Real-time voice session
+            </span>
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
+              Auto-generated report
+            </span>
+          </div>
         </header>
 
-        {(error || parseError) && (
+        {parseError && (
           <div
             role="alert"
-            className="mb-6 rounded-xl border border-rose-500/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-100"
+            className="mb-4 rounded-xl border border-amber-500/35 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
           >
-            {error || parseError}
+            Resume parsing issue: {parseError}
+          </div>
+        )}
+        {callError && (
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-rose-500/35 bg-rose-950/40 px-4 py-3 text-sm text-rose-100"
+          >
+            Call issue: {callError}
           </div>
         )}
 
@@ -411,7 +452,7 @@ export default function App() {
                 refreshSessions()
                 setAppView('past-sessions')
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20"
+              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/10 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/20"
             >
               <History className="h-4 w-4" aria-hidden />
               Review Previous Sessions
@@ -420,95 +461,98 @@ export default function App() {
         )}
 
         {phase !== 'report' && (
-          <section className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/20 backdrop-blur">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              <User className="h-4 w-4" aria-hidden />
-              Character
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {CHARACTERS.map((c) => {
-                const selected = character === c.id
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    disabled={phase === 'in-call' || phase === 'connecting'}
-                    onClick={() => setCharacter(c.id)}
-                    className={`rounded-xl border px-4 py-4 text-left transition ${
-                      selected
-                        ? 'border-violet-400/70 bg-violet-500/15 ring-1 ring-violet-400/40'
-                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                    } disabled:opacity-60`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-white">{c.label}</span>
-                      <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs text-violet-200">
-                        {c.persona}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm leading-snug text-slate-400">{c.blurb}</p>
-                  </button>
-                )
-              })}
+          <section className="mb-8 grid gap-6 xl:grid-cols-5">
+            <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <User className="h-4 w-4" aria-hidden />
+                Character
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {CHARACTERS.map((c) => {
+                  const selected = character === c.id
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={phase === 'in-call' || phase === 'connecting'}
+                      onClick={() => setCharacter(c.id)}
+                      className={`rounded-2xl border px-4 py-4 text-left transition ${
+                        selected
+                          ? 'border-sky-300/70 bg-sky-500/15 ring-1 ring-sky-300/45'
+                          : 'border-white/10 bg-white/[0.02] hover:border-sky-300/35 hover:bg-white/[0.06]'
+                      } disabled:opacity-60`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-white">{c.label}</span>
+                        <span className="rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-sky-100">
+                          {c.persona}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-snug text-slate-300">{c.blurb}</p>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </section>
-        )}
 
-        {phase !== 'report' && (
-          <section className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-black/20 backdrop-blur">
-            <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              <Briefcase className="h-4 w-4" aria-hidden />
-              Resume
-            </h2>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt,text/plain,application/pdf"
-              className="hidden"
-              onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                disabled={phase === 'in-call' || phase === 'connecting' || parsing}
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/15 disabled:opacity-50"
-              >
-                <Upload className="h-4 w-4" aria-hidden />
-                {parsing ? 'Reading…' : 'Upload PDF or text'}
-              </button>
-              {resumeFileName && (
-                <span className="text-sm text-slate-400">
-                  {resumeFileName}
-                  {resumeText.trim() ? (
-                    <span className="ml-2 text-emerald-400/90">
-                      ({resumeText.length.toLocaleString()} chars)
-                    </span>
-                  ) : null}
-                </span>
-              )}
+            <div className={`${GLASS_CARD_CLASS} xl:col-span-2`}>
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <Briefcase className="h-4 w-4" aria-hidden />
+                Resume
+              </h2>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt,text/plain,application/pdf"
+                className="hidden"
+                onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={phase === 'in-call' || phase === 'connecting' || parsing}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
+                >
+                  <Upload className="h-4 w-4" aria-hidden />
+                  {parsing ? 'Reading file...' : 'Upload resume'}
+                </button>
+                {resumeFileName && (
+                  <span className="text-sm text-slate-300">
+                    {resumeFileName}
+                    {resumeText.trim() ? (
+                      <span className="ml-2 text-emerald-300">
+                        ({resumeText.length.toLocaleString()} chars)
+                      </span>
+                    ) : null}
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-xs text-slate-400">
+                Resume content is injected into the interviewer prompt. PDF extraction depends on
+                embedded text; scanned-only pages may yield less content.
+              </p>
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Text is injected into the assistant system prompt. For PDFs we extract embedded text
-              only (scanned pages may be empty).
-            </p>
           </section>
         )}
 
         {(phase === 'setup' || phase === 'connecting') && (
-          <div className="flex flex-col items-center gap-4">
+          <div className={`${GLASS_CARD_CLASS} mb-8 flex flex-col items-center gap-4 text-center`}>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Ready to begin</p>
             <button
               type="button"
               disabled={!vapiConfigured || parsing || phase === 'connecting'}
-              onClick={() => void startCall(character, resumeText)}
-              className="w-full max-w-md rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 px-8 py-4 text-lg font-semibold text-white shadow-lg shadow-violet-900/40 transition hover:from-violet-400 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={beginPractice}
+              className="w-full max-w-lg rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-indigo-900/45 transition hover:from-sky-400 hover:via-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {phase === 'connecting' ? 'Connecting…' : 'Start practice'}
             </button>
             {phase === 'connecting' && connectingStage && (
-              <p className="text-xs text-slate-500">{connectingStage}</p>
+              <p className="rounded-md border border-sky-300/20 bg-sky-500/10 px-3 py-1 text-xs text-sky-100">
+                {connectingStage}
+              </p>
             )}
-            <p className="max-w-md text-center text-xs text-slate-500">
+            <p className="max-w-2xl text-xs text-slate-400">
               Grant microphone access when the browser prompts. Session duration, transcript summary,
               and simple scores are saved locally; Supabase is used only if configured.
             </p>
@@ -516,7 +560,7 @@ export default function App() {
         )}
 
         {phase === 'in-call' && (
-          <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-xl shadow-black/30 backdrop-blur">
+          <section className={`${GLASS_CARD_CLASS} text-center`}>
             <p className="mb-6 text-sm text-slate-400">Session in progress</p>
             <div className="mb-8 flex justify-center">
               <VoiceOrb active={aiSpeaking} volume={volume} />
@@ -525,7 +569,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={toggleMute}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/15"
+                className={SECONDARY_BUTTON_CLASS}
               >
                 {muted ? (
                   <>
@@ -542,7 +586,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={endCall}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-100 hover:bg-rose-500/30"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-100 transition hover:bg-rose-500/30"
               >
                 <PhoneOff className="h-4 w-4" aria-hidden />
                 End call
@@ -552,7 +596,7 @@ export default function App() {
         )}
 
         {phase === 'report' && report && (
-          <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 shadow-xl shadow-black/30 backdrop-blur">
+          <section className={GLASS_CARD_CLASS}>
             <h2 className="mb-6 text-center text-xl font-semibold text-white">
               Post-interview report
             </h2>
@@ -577,7 +621,7 @@ export default function App() {
               </div>
             </div>
             <div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment (heuristic)</p>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment</p>
               <p className="mt-1 capitalize text-slate-200">{report.sentiment}</p>
             </div>
             <div className="mb-6">

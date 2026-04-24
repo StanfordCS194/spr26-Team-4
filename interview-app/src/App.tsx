@@ -32,13 +32,13 @@ const CHARACTERS: {
   {
     id: 'tech-lead',
     label: 'Tech Lead',
-    persona: 'Emma',
+    persona: 'Marissa',
     blurb: 'Depth on architecture, tradeoffs, and collaboration.',
   },
   {
     id: 'hiring-manager',
     label: 'Hiring Manager',
-    persona: 'Jack',
+    persona: 'Paul',
     blurb: 'Scope, outcomes, and how you work with stakeholders.',
   },
 ]

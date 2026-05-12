@@ -10,7 +10,7 @@ Source Control with Git Assignment: Boom, Jerry, Nick, Danny Argudo
 The interview prep app is split into two root-level workspaces:
 
 - `frontend/` — React/Vite UI and browser Vapi call flow.
-- `backend/` — Express/TypeScript API for resume parsing and report scoring.
+- `backend/` — FastAPI/Python API for resume parsing and report scoring.
 
 Run locally in two terminals:
 

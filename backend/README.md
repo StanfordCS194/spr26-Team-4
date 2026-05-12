@@ -1,6 +1,6 @@
 # InterviewApp Backend
 
-Express/TypeScript backend for backend-flow work that should not run in the browser.
+FastAPI backend for backend-flow work that should not run in the browser.
 
 ## Responsibilities
 
@@ -11,9 +11,11 @@ Express/TypeScript backend for backend-flow work that should not run in the brow
 ## Run Locally
 
 ```bash
-npm install
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 cp .env.example .env
-npm run dev
+python3 -m uvicorn app.main:app --reload --port 3001
 ```
 
 Required `.env`:
@@ -34,7 +36,7 @@ GEMINI_MODEL=gemini-2.0-flash
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Start backend in watch mode |
-| `npm run build` | Compile TypeScript |
-| `npm run start` | Run compiled server |
-| `npm run typecheck` | Type-check without emitting |
+| `python3 -m uvicorn app.main:app --reload --port 3001` | Start backend in watch mode |
+| `python3 -m compileall app` | Syntax-check backend modules |
+
+FastAPI docs are available at `http://localhost:3001/docs` while the backend is running.

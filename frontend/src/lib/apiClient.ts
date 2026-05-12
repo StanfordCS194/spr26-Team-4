@@ -6,9 +6,12 @@ export function apiUrl(path: string): string {
 
 export async function getApiError(response: Response, fallback: string): Promise<string> {
   try {
-    const payload = (await response.json()) as { error?: unknown }
+    const payload = (await response.json()) as { detail?: unknown; error?: unknown }
     if (typeof payload.error === 'string' && payload.error.trim()) {
       return payload.error
+    }
+    if (typeof payload.detail === 'string' && payload.detail.trim()) {
+      return payload.detail
     }
   } catch {
     // Use fallback when the backend did not return JSON.

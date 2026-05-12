@@ -7,9 +7,12 @@ React/Vite frontend for the behavioral interview prep app. It renders the UI, ow
 1. **Start the backend first** from `../backend`:
 
    ```bash
-   npm install
+   cd ../backend
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
    cp .env.example .env
-   npm run dev
+   python3 -m uvicorn app.main:app --reload --port 3001
    ```
 
 2. **Open another terminal** in this folder (`frontend`).

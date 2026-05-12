@@ -6,7 +6,7 @@ import _VapiSDK from '@vapi-ai/web'
 const Vapi = ((_VapiSDK as any).default ?? _VapiSDK) as typeof _VapiSDK
 import { buildAssistantConfig } from '../lib/buildAssistantConfig'
 import type { InterviewCharacter } from '../lib/buildSystemPrompt'
-import { scoreFromUserTranscript, simpleSentiment } from '../lib/reportScoring'
+import { scoreInterviewFeedback } from '../lib/reportScoring'
 import {
   extractUserSpeech,
   summarizeFromConversation,
@@ -89,7 +89,7 @@ export function useVapiInterview() {
     }
   }, [])
 
-  const finalizeSession = useCallback(() => {
+  const finalizeSession = useCallback(async () => {
     if (finalizedRef.current) return
     finalizedRef.current = true
 
@@ -112,9 +112,29 @@ export function useVapiInterview() {
         : summarizeFromTranscriptChunks(chunks)
 
     const userSpeech = extractUserSpeech(chunks)
-    const sentiment = simpleSentiment(userSpeech || transcriptSummary)
-    const { clarityScore, confidenceRating, topImprovements } =
-      scoreFromUserTranscript(userSpeech || transcriptSummary)
+    let clarityScore = 0
+    let confidenceRating = 0
+    let topImprovements: string[] = []
+    let sentiment: PostInterviewReport['sentiment'] = 'neutral'
+    try {
+      const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary)
+      clarityScore = feedback.clarityScore
+      confidenceRating = feedback.confidenceRating
+      topImprovements = feedback.topImprovements
+      sentiment = feedback.sentiment
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not generate interview report.')
+      setPhase('setup')
+      setAiSpeaking(false)
+      setVolume(0)
+      setConnectingStage('')
+      detachVapi()
+      callStartedAt.current = null
+      connectStartedAt.current = null
+      transcriptChunks.current = []
+      conversationRef.current = []
+      return
+    }
 
     const session: PostInterviewReport = {
       durationSeconds,
@@ -196,7 +216,7 @@ export function useVapiInterview() {
       const key = import.meta.env.VITE_VAPI_PUBLIC_KEY
       if (!key) {
         setError(
-          'Missing VITE_VAPI_PUBLIC_KEY. Add it to interview-app/.env and restart the dev server.',
+          'Missing VITE_VAPI_PUBLIC_KEY. Add it to frontend/.env and restart the dev server.',
         )
         return
       }
@@ -245,7 +265,7 @@ export function useVapiInterview() {
       })
 
       vapi.on('call-end', () => {
-        finalizeSession()
+        void finalizeSession()
       })
 
       vapi.on('speech-start', () => setAiSpeaking(true))

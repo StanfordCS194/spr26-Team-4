@@ -131,9 +131,11 @@ export default function App() {
 
   // Refresh saved sessions whenever returning to setup phase
   useEffect(() => {
-    if (phase === 'setup') {
+    if (phase !== 'setup') return
+    const refreshId = window.setTimeout(() => {
       setSavedSessions(loadSessions())
-    }
+    }, 0)
+    return () => window.clearTimeout(refreshId)
   }, [phase])
 
   const refreshSessions = useCallback(() => {
@@ -436,7 +438,7 @@ export default function App() {
             <code className="rounded bg-black/30 px-1.5 py-0.5 text-amber-200">
               VITE_VAPI_PUBLIC_KEY
             </code>{' '}
-            to <code className="rounded bg-black/30 px-1.5 py-0.5">interview-app/.env</code> to
+            to <code className="rounded bg-black/30 px-1.5 py-0.5">frontend/.env</code> to
             start calls. Optional:{' '}
             <code className="rounded bg-black/30 px-1.5 py-0.5">VITE_SUPABASE_URL</code> and{' '}
             <code className="rounded bg-black/30 px-1.5 py-0.5">VITE_SUPABASE_ANON_KEY</code> to

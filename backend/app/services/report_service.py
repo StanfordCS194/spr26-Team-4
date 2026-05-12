@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from app.models.report import ReportFeedback, ReportSentiment, ScoreReportRequest
-from app.services.gemini import generate_gemini_text
+from app.services.ollama import generate_ollama_text
 
 
 def _clamp_score(value: Any) -> int | None:
@@ -21,7 +21,7 @@ def _normalize_sentiment(value: Any) -> ReportSentiment | None:
     return None
 
 
-def _parse_gemini_json(text: str) -> dict[str, Any] | None:
+def _parse_model_json(text: str) -> dict[str, Any] | None:
     trimmed = text.strip()
     if not trimmed:
         return None
@@ -65,19 +65,11 @@ Scoring guidance:
 Candidate transcript:
 {payload.transcriptSummary or payload.userText or "(empty transcript)"}"""
 
-    text = await generate_gemini_text(
-        {
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "responseMimeType": "application/json",
-            },
-        }
-    )
+    text = await generate_ollama_text(prompt, response_format="json", temperature=0.2)
 
-    parsed = _parse_gemini_json(text)
+    parsed = _parse_model_json(text)
     if parsed is None:
-        raise ValueError("Gemini returned invalid scoring JSON.")
+        raise ValueError("Ollama returned invalid scoring JSON.")
 
     clarity_score = _clamp_score(parsed.get("clarityScore"))
     confidence_rating = _clamp_score(parsed.get("confidenceRating"))
@@ -90,7 +82,7 @@ Candidate transcript:
         or sentiment is None
         or top_improvements is None
     ):
-        raise ValueError("Gemini scoring response is missing required fields.")
+        raise ValueError("Ollama scoring response is missing required fields.")
 
     return ReportFeedback(
         clarityScore=clarity_score,

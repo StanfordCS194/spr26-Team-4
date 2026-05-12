@@ -1,7 +1,9 @@
 import base64
+from io import BytesIO
+
+from pypdf import PdfReader
 
 from app.models.resume import ParseResumeRequest, ParseResumeResponse
-from app.services.gemini import generate_gemini_text
 
 
 def _infer_mime_type(file_name: str | None, mime_type: str | None) -> str:
@@ -20,9 +22,17 @@ async def parse_resume(payload: ParseResumeRequest) -> ParseResumeResponse:
     if not payload.dataBase64:
         raise ValueError("Missing resume file data.")
 
+    try:
+        file_bytes = base64.b64decode(payload.dataBase64, validate=True)
+    except Exception as error:
+        raise ValueError("Resume file data was not valid base64.") from error
+
     mime_type = _infer_mime_type(payload.fileName, payload.mimeType)
     if mime_type.startswith("text/"):
-        text = base64.b64decode(payload.dataBase64).decode("utf-8").strip()
+        try:
+            text = file_bytes.decode("utf-8").strip()
+        except UnicodeDecodeError as error:
+            raise ValueError("Text resume was not valid UTF-8.") from error
         if not text:
             raise ValueError("Text resume was empty.")
         return ParseResumeResponse(text=text)
@@ -30,30 +40,16 @@ async def parse_resume(payload: ParseResumeRequest) -> ParseResumeResponse:
     if mime_type != "application/pdf":
         raise ValueError("Only PDF and text resumes are supported.")
 
-    text = await generate_gemini_text(
-        {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {
-                            "text": (
-                                "Extract the complete resume text from this PDF. "
-                                "Return plain text only. Preserve section headers, "
-                                "bullet points, dates, company names, titles, and "
-                                "metrics. Do not summarize."
-                            )
-                        },
-                        {
-                            "inline_data": {
-                                "mime_type": "application/pdf",
-                                "data": payload.dataBase64,
-                            }
-                        },
-                    ],
-                }
-            ],
-            "generationConfig": {"temperature": 0},
-        }
-    )
+    try:
+        reader = PdfReader(BytesIO(file_bytes))
+        pages = [page.extract_text() or "" for page in reader.pages]
+    except Exception as error:
+        raise ValueError("Could not read that PDF resume.") from error
+
+    text = "\n\n".join(page.strip() for page in pages if page.strip()).strip()
+    if not text:
+        raise ValueError(
+            "No text could be extracted from that PDF. Try a text-based PDF instead of a scanned image."
+        )
+
     return ParseResumeResponse(text=text)

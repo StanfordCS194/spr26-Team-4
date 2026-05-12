@@ -1,0 +1,24 @@
+{
+  "name": "spr26-team-4",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hello! For more information about our team members, check out the [Wiki](https://github.com/StanfordCS194/spr26-Team-4/wiki).",
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && . .venv/bin/activate && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 3001",
+    "build": "npm --prefix frontend run build && python3.12 -m compileall backend/app",
+    "lint": "npm --prefix frontend run lint",
+    "typecheck:backend": "python3.12 -m compileall backend/app"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StanfordCS194/spr26-Team-4.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/StanfordCS194/spr26-Team-4/issues"
+  },
+  "homepage": "https://github.com/StanfordCS194/spr26-Team-4#readme"
+}

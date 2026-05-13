@@ -39,5 +39,6 @@ export function buildAssistantConfig(
     firstMessage: FIRST_MESSAGE[character],
     firstMessageMode: 'assistant-speaks-first',
     maxDurationSeconds: 600,
+    clientMessages: ['transcript', 'conversation-update'],
   }
 }

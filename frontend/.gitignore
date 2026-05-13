@@ -12,7 +12,12 @@ dist
 dist-ssr
 *.local
 
-.env
+# Secrets and env files (keep templates tracked)
+.env*
+!.env.example
+
+.venv/
+venv/
 
 # Editor directories and files
 .vscode/*

@@ -13,8 +13,11 @@ import {
   summarizeFromTranscriptChunks,
 } from '../lib/transcriptUtils'
 import {
+  completeInterviewAttempt,
+  failInterviewAttempt,
   saveSessionLocal,
   saveSessionRemote,
+  startInterviewAttempt,
   type InterviewSessionRecord,
 } from '../lib/sessionPersistence'
 
@@ -22,6 +25,7 @@ import {
 export type InterviewPhase = 'setup' | 'connecting' | 'in-call' | 'report'
 
 export type PostInterviewReport = {
+  sessionId: string
   durationSeconds: number
   transcriptSummary: string
   clarityScore: number
@@ -69,6 +73,8 @@ export function useVapiInterview() {
   )
   const characterRef = useRef<InterviewCharacter>('tech-lead')
   const finalizedRef = useRef(false)
+  // KPI tracking: links one start attempt to its eventual completion/failure.
+  const currentAttemptId = useRef<string | null>(null)
 
   const detachVapi = useCallback(() => {
     const v = vapiRef.current
@@ -123,20 +129,14 @@ export function useVapiInterview() {
       topImprovements = feedback.topImprovements
       sentiment = feedback.sentiment
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not generate interview report.')
-      setPhase('setup')
-      setAiSpeaking(false)
-      setVolume(0)
-      setConnectingStage('')
-      detachVapi()
-      callStartedAt.current = null
-      connectStartedAt.current = null
-      transcriptChunks.current = []
-      conversationRef.current = []
-      return
+      // Scoring failed — surface the error but still show the report so the
+      // user keeps their transcript and session data.
+      setError(e instanceof Error ? e.message : 'Could not score interview report.')
     }
 
+    const sessionId = crypto.randomUUID()
     const session: PostInterviewReport = {
+      sessionId,
       durationSeconds,
       transcriptSummary:
         transcriptSummary ||
@@ -154,7 +154,7 @@ export function useVapiInterview() {
     setConnectingStage('')
 
     const record: InterviewSessionRecord = {
-      id: crypto.randomUUID(),
+      id: sessionId,
       createdAt: new Date().toISOString(),
       durationSeconds: session.durationSeconds,
       transcriptSummary: session.transcriptSummary,
@@ -165,11 +165,16 @@ export function useVapiInterview() {
       topImprovements: session.topImprovements,
     }
     saveSessionLocal(record)
+    if (currentAttemptId.current) {
+      // KPI tracking: completed reports count toward completion rate.
+      completeInterviewAttempt(currentAttemptId.current, session.durationSeconds)
+    }
     void saveSessionRemote(record)
 
     detachVapi()
     callStartedAt.current = null
     connectStartedAt.current = null
+    currentAttemptId.current = null
     transcriptChunks.current = []
     conversationRef.current = []
   }, [detachVapi])
@@ -209,6 +214,7 @@ export function useVapiInterview() {
       setMuted(false)
       setConnectingStage('')
       finalizedRef.current = false
+      currentAttemptId.current = null
       characterRef.current = character
       transcriptChunks.current = []
       conversationRef.current = []
@@ -223,6 +229,8 @@ export function useVapiInterview() {
 
       setPhase('connecting')
       connectStartedAt.current = Date.now()
+      // KPI tracking: record a start once the app has enough config to attempt a call.
+      currentAttemptId.current = startInterviewAttempt().id
       detachVapi()
       const vapi = new Vapi(key)
       vapiRef.current = vapi
@@ -249,6 +257,10 @@ export function useVapiInterview() {
         setPhase('setup')
         setError(ev.error || 'Call failed to start')
         finalizedRef.current = false
+        if (currentAttemptId.current) {
+          failInterviewAttempt(currentAttemptId.current, String(ev.error || 'Call failed to start'))
+          currentAttemptId.current = null
+        }
         connectStartedAt.current = null
         detachVapi()
       })
@@ -295,6 +307,10 @@ export function useVapiInterview() {
         } catch {
           setPhase('setup')
           connectStartedAt.current = null
+          if (currentAttemptId.current) {
+            failInterviewAttempt(currentAttemptId.current, 'Microphone access was blocked.')
+            currentAttemptId.current = null
+          }
           setError(
             'Microphone access was blocked or unavailable. Allow the mic for this site, then try again.',
           )
@@ -334,7 +350,12 @@ export function useVapiInterview() {
       } catch (e) {
         setConnectingStage('')
         setPhase('setup')
-        setError(e instanceof Error ? e.message : String(e))
+        const message = e instanceof Error ? e.message : String(e)
+        setError(message)
+        if (currentAttemptId.current) {
+          failInterviewAttempt(currentAttemptId.current, message)
+          currentAttemptId.current = null
+        }
         try {
           await vapi.stop()
         } catch {

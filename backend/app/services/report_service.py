@@ -37,12 +37,18 @@ def _parse_model_json(text: str) -> dict[str, Any] | None:
             return None
 
 
+_IMPROVEMENT_PLACEHOLDER = "Review your response for clarity and conciseness."
+
+
 def _normalize_improvements(value: Any) -> list[str] | None:
     if not isinstance(value, list):
         return None
     cleaned = [item.strip() for item in value if isinstance(item, str) and item.strip()]
-    if len(cleaned) < 3:
+    if not cleaned:
         return None
+    # Pad to exactly 3 if Gemini returns fewer than expected.
+    while len(cleaned) < 3:
+        cleaned.append(_IMPROVEMENT_PLACEHOLDER)
     return cleaned[:3]
 
 

@@ -1,109 +1,45 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Briefcase,
-  ChevronLeft,
-  ChevronDown,
-  Download,
-  History,
-  Mic,
-  MicOff,
-  PhoneOff,
-  Sparkles,
-  Trash2,
-  Upload,
-  User,
-} from 'lucide-react'
-import { VoiceOrb } from './components/VoiceOrb'
+import { History, Moon, Sun } from 'lucide-react'
 import { useVapiInterview } from './hooks/useVapiInterview'
 import type { InterviewCharacter } from './lib/buildSystemPrompt'
 import { parseResumeFile } from './lib/parseResumeFile'
 import {
-  loadSessions,
   deleteSession as deleteSessionLocal,
+  loadKpiMetrics,
+  loadSessions,
+  updateSessionFeedbackUsefulnessLocal,
+  updateSessionFeedbackUsefulnessRemote,
+  type InterviewKpiMetrics,
   type InterviewSessionRecord,
 } from './lib/sessionPersistence'
+import { loadOnboardingResult, type OnboardingResult } from './lib/onboarding'
+import { GLASS_CARD_CLASS, PAGE_CLASS, SHELL_CLASS } from './lib/interviewUi'
+import { InCallView } from './views/InCallView'
+import { OnboardingView } from './views/OnboardingView'
+import { PastSessionDetailView } from './views/PastSessionDetailView'
+import { PastSessionsView, type SortBy } from './views/PastSessionsView'
+import { ReportView } from './views/ReportView'
+import { SetupView } from './views/SetupView'
 
-const CHARACTERS: {
-  id: InterviewCharacter
-  label: string
-  persona: string
-  blurb: string
-}[] = [
-  {
-    id: 'tech-lead',
-    label: 'Tech Lead',
-    persona: 'Marissa',
-    blurb: 'Depth on architecture, tradeoffs, and collaboration.',
-  },
-  {
-    id: 'hiring-manager',
-    label: 'Hiring Manager',
-    persona: 'Paul',
-    blurb: 'Scope, outcomes, and how you work with stakeholders.',
-  },
-]
-
-const CHARACTER_LABELS: Record<string, string> = {
-  'tech-lead': 'Tech Lead',
-  'hiring-manager': 'Hiring Manager',
-}
-
-const PAGE_CLASS =
-  'min-h-svh bg-slate-950 bg-[radial-gradient(circle_at_15%_15%,_rgba(56,189,248,0.22),_transparent_35%),radial-gradient(circle_at_85%_10%,_rgba(167,139,250,0.22),_transparent_40%),linear-gradient(180deg,_#020617_0%,_#0f172a_45%,_#111827_100%)] text-slate-100'
-const SHELL_CLASS = 'mx-auto max-w-6xl px-4 py-10 pb-16 sm:px-6'
-const GLASS_CARD_CLASS =
-  'rounded-3xl border border-white/15 bg-white/[0.05] p-6 shadow-2xl shadow-black/35 backdrop-blur-md'
-const SECONDARY_BUTTON_CLASS =
-  'inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50'
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-function downloadSessionFile(s: InterviewSessionRecord) {
-  const lines = [
-    'Interview Session Report',
-    '========================',
-    `Date:       ${formatDate(s.createdAt)}`,
-    `Character:  ${CHARACTER_LABELS[s.character] ?? s.character}`,
-    `Duration:   ${s.durationSeconds}s`,
-    '',
-    'Scores',
-    '------',
-    `Clarity:    ${s.clarityScore}/10`,
-    `Confidence: ${s.confidenceRating}/10`,
-    `Sentiment:  ${s.sentiment}`,
-    '',
-    'Top 3 Improvements',
-    '------------------',
-    ...s.topImprovements.map((t, i) => `${i + 1}. ${t}`),
-    '',
-    'Transcript Summary',
-    '------------------',
-    s.transcriptSummary || '—',
-  ]
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `interview-${new Date(s.createdAt).toISOString().slice(0, 10)}-${s.id.slice(0, 6)}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-type SortBy = 'date' | 'clarity' | 'confidence'
 type AppView = 'main' | 'past-sessions' | 'past-detail'
+type ThemeMode = 'light' | 'dark'
+
+const THEME_STORAGE_KEY = 'interview_app_theme_v1'
+
+function loadTheme(): ThemeMode {
+  const saved = localStorage.getItem(THEME_STORAGE_KEY)
+  // Future system-preference support can live here by checking prefers-color-scheme.
+  return saved === 'light' || saved === 'dark' ? saved : 'dark'
+}
 
 export default function App() {
-  // ── Frontend/UI state ─────────────────────────────────────────────────────
-  const [character, setCharacter] = useState<InterviewCharacter>('tech-lead')
+  const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
+  const [onboardingResult, setOnboardingResult] = useState<OnboardingResult | null>(() =>
+    loadOnboardingResult(),
+  )
+  const [character, setCharacter] = useState<InterviewCharacter>(
+    () => onboardingResult?.assignedCharacter ?? 'tech-lead',
+  )
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -113,6 +49,7 @@ export default function App() {
   const [appView, setAppView] = useState<AppView>('main')
   const [selectedSession, setSelectedSession] = useState<InterviewSessionRecord | null>(null)
   const [savedSessions, setSavedSessions] = useState<InterviewSessionRecord[]>(() => loadSessions())
+  const [kpiMetrics, setKpiMetrics] = useState<InterviewKpiMetrics>(() => loadKpiMetrics())
   const [sortBy, setSortBy] = useState<SortBy>('date')
 
   const {
@@ -129,17 +66,25 @@ export default function App() {
     resetToSetup,
   } = useVapiInterview()
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-light', theme === 'light')
+    document.documentElement.classList.toggle('theme-dark', theme === 'dark')
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
+
   // Refresh saved sessions whenever returning to setup phase
   useEffect(() => {
     if (phase !== 'setup') return
     const refreshId = window.setTimeout(() => {
       setSavedSessions(loadSessions())
+      setKpiMetrics(loadKpiMetrics())
     }, 0)
     return () => window.clearTimeout(refreshId)
   }, [phase])
 
   const refreshSessions = useCallback(() => {
     setSavedSessions(loadSessions())
+    setKpiMetrics(loadKpiMetrics())
   }, [])
 
   const handleDelete = useCallback(
@@ -159,7 +104,6 @@ export default function App() {
     return copy // already stored newest-first
   }, [savedSessions, sortBy])
 
-  // ── Backend-flow handlers (trigger parsing/call orchestration) ────────────
   const onPickFile = useCallback(async (file: File | null) => {
     if (!file) return
     setParseError(null)
@@ -185,234 +129,94 @@ export default function App() {
     void startCall(character, resumeText)
   }, [character, resumeText, startCall])
 
-  // ── Past sessions list ────────────────────────────────────────────────────
+  const handleFeedbackUsefulnessRating = useCallback(
+    (sessionId: string, rating: number) => {
+      updateSessionFeedbackUsefulnessLocal(sessionId, rating)
+      void updateSessionFeedbackUsefulnessRemote(sessionId, rating)
+      refreshSessions()
+    },
+    [refreshSessions],
+  )
+
+  const handleOnboardingComplete = useCallback((result: OnboardingResult) => {
+    setOnboardingResult(result)
+    setCharacter(result.assignedCharacter)
+  }, [])
+
+  const themeToggle = (
+    <button
+      type="button"
+      onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+      className="app-secondary-button group inline-flex w-11 items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-sm font-medium text-white transition-all duration-300 ease-out hover:w-36 hover:bg-white/20 focus-visible:w-36 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/60"
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+    >
+      {theme === 'dark' ? (
+        <>
+          <Sun className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:max-w-24 group-hover:opacity-100 group-focus-visible:max-w-24 group-focus-visible:opacity-100">
+            Light mode
+          </span>
+        </>
+      ) : (
+        <>
+          <Moon className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="max-w-0 whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:max-w-24 group-hover:opacity-100 group-focus-visible:max-w-24 group-focus-visible:opacity-100">
+            Dark mode
+          </span>
+        </>
+      )}
+    </button>
+  )
+
+  if (!onboardingResult) {
+    return <OnboardingView onComplete={handleOnboardingComplete} />
+  }
+
   if (appView === 'past-sessions') {
     return (
-      <div className={PAGE_CLASS}>
-        <div className={SHELL_CLASS}>
-          <div className="mb-8 flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setAppView('main')}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-              Back
-            </button>
-            <h1 className="text-xl font-semibold text-white">Previous Sessions</h1>
-          </div>
-
-          {savedSessions.length === 0 ? (
-            <p className="text-center text-slate-400">No sessions recorded yet.</p>
-          ) : (
-            <>
-              {/* Sort control */}
-              <div className="mb-5 flex items-center gap-3">
-                <label htmlFor="sort-select" className="text-xs text-slate-400 whitespace-nowrap">
-                  Sort by
-                </label>
-                <div className="relative">
-                  <select
-                    id="sort-select"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as SortBy)}
-                    className="appearance-none rounded-xl border border-white/15 bg-white/10 py-2 pl-4 pr-9 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-400/50"
-                  >
-                    <option value="date">Date (newest first)</option>
-                    <option value="clarity">Clarity (highest first)</option>
-                    <option value="confidence">Confidence (highest first)</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                {sortedSessions.map((s) => (
-                  <div
-                    key={s.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.04] shadow-lg shadow-black/20 backdrop-blur transition hover:border-violet-400/40"
-                  >
-                    {/* Clickable summary area */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSession(s)
-                        setAppView('past-detail')
-                      }}
-                      className="w-full rounded-t-2xl px-5 pt-4 pb-3 text-left"
-                    >
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-white">
-                          {CHARACTER_LABELS[s.character] ?? s.character}
-                        </span>
-                        <span className="text-xs text-slate-500">{formatDate(s.createdAt)}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-                        <span>
-                          Duration: <span className="text-slate-300">{s.durationSeconds}s</span>
-                        </span>
-                        <span>
-                          Clarity: <span className="text-violet-300">{s.clarityScore}/10</span>
-                        </span>
-                        <span>
-                          Confidence: <span className="text-indigo-300">{s.confidenceRating}/10</span>
-                        </span>
-                        <span className="capitalize">
-                          Sentiment: <span className="text-slate-300">{s.sentiment}</span>
-                        </span>
-                      </div>
-                    </button>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 border-t border-white/5 px-5 py-2.5">
-                      <button
-                        type="button"
-                        onClick={() => downloadSessionFile(s)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/35 bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30"
-                      >
-                        <Download className="h-3.5 w-3.5" aria-hidden />
-                        Download
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(s.id)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/35 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:bg-rose-500/25"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <PastSessionsView
+        sessions={sortedSessions}
+        kpiMetrics={kpiMetrics}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        onBack={() => setAppView('main')}
+        headerAction={themeToggle}
+        onSelectSession={(session) => {
+          setSelectedSession(session)
+          setAppView('past-detail')
+        }}
+        onDeleteSession={handleDelete}
+      />
     )
   }
 
-  // ── Past session detail ───────────────────────────────────────────────────
   if (appView === 'past-detail' && selectedSession) {
-    const s = selectedSession
     return (
-      <div className={PAGE_CLASS}>
-        <div className={SHELL_CLASS}>
-          <div className="mb-8 flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setAppView('past-sessions')}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-              Back
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-white">
-                {CHARACTER_LABELS[s.character] ?? s.character}
-              </h1>
-              <p className="text-xs text-slate-500">{formatDate(s.createdAt)}</p>
-            </div>
-          </div>
-
-          <section className={GLASS_CARD_CLASS}>
-            <h2 className="mb-6 text-center text-xl font-semibold text-white">
-              Post-interview report
-            </h2>
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Duration</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{s.durationSeconds}s</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Clarity score</p>
-                <p className="mt-1 text-2xl font-semibold text-violet-300">{s.clarityScore}/10</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Confidence</p>
-                <p className="mt-1 text-2xl font-semibold text-indigo-300">{s.confidenceRating}/10</p>
-              </div>
-            </div>
-            <div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment</p>
-              <p className="mt-1 capitalize text-slate-200">{s.sentiment}</p>
-            </div>
-            <div className="mb-6">
-              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
-                Top 3 improved points
-              </p>
-              <ul className="list-inside list-decimal space-y-2 text-sm leading-relaxed text-slate-300">
-                {s.topImprovements.map((t, i) => (
-                  <li key={i} className="text-pretty">{t}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
-                Transcript summary
-              </p>
-              <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words text-left text-xs leading-relaxed text-slate-400">
-                {s.transcriptSummary || '—'}
-              </pre>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => downloadSessionFile(s)}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-5 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/30"
-              >
-                <Download className="h-4 w-4" aria-hidden />
-                Download report
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  handleDelete(s.id, () => {
-                    setSelectedSession(null)
-                    setAppView('past-sessions')
-                  })
-                }
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-200 transition hover:bg-rose-500/30"
-              >
-                <Trash2 className="h-4 w-4" aria-hidden />
-                Delete session
-              </button>
-            </div>
-          </section>
-        </div>
-      </div>
+      <PastSessionDetailView
+        session={selectedSession}
+        onBack={() => setAppView('past-sessions')}
+        headerAction={themeToggle}
+        onDeleteSession={handleDelete}
+        onDeleted={() => {
+          setSelectedSession(null)
+          setAppView('past-sessions')
+        }}
+      />
     )
   }
 
-  // ── Main view ─────────────────────────────────────────────────────────────
   return (
     <div className={PAGE_CLASS}>
       <div className={SHELL_CLASS}>
+        <div className="mb-6 flex justify-end">{themeToggle}</div>
         <header className="mb-10 text-center sm:mb-12">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/25 bg-sky-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-sky-200/90">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Behavioral Interview Preparation
-          </p>
           <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Interview Prep
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-slate-300 sm:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-slate-400 sm:text-base">
             Practice with a voice interviewer in a focused dashboard: choose a persona, upload your
             resume, and run a three-question STAR session with instant micro-feedback.
           </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
-              3-question format
-            </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
-              Real-time voice session
-            </span>
-            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-slate-200">
-              Auto-generated report
-            </span>
-          </div>
         </header>
 
         {parseError && (
@@ -463,84 +267,20 @@ export default function App() {
         )}
 
         {phase !== 'report' && (
-          <section className="mb-8 grid gap-6 xl:grid-cols-5">
-            <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <User className="h-4 w-4" aria-hidden />
-                Character
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {CHARACTERS.map((c) => {
-                  const selected = character === c.id
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      disabled={phase === 'in-call' || phase === 'connecting'}
-                      onClick={() => setCharacter(c.id)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
-                        selected
-                          ? 'border-sky-300/70 bg-sky-500/15 ring-1 ring-sky-300/45'
-                          : 'border-white/10 bg-white/[0.02] hover:border-sky-300/35 hover:bg-white/[0.06]'
-                      } disabled:opacity-60`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-white">{c.label}</span>
-                        <span className="rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-sky-100">
-                          {c.persona}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-snug text-slate-300">{c.blurb}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className={`${GLASS_CARD_CLASS} xl:col-span-2`}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <Briefcase className="h-4 w-4" aria-hidden />
-                Resume
-              </h2>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.txt,text/plain,application/pdf"
-                className="hidden"
-                onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-              />
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={phase === 'in-call' || phase === 'connecting' || parsing}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
-                >
-                  <Upload className="h-4 w-4" aria-hidden />
-                  {parsing ? 'Reading file...' : 'Upload resume'}
-                </button>
-                {resumeFileName && (
-                  <span className="text-sm text-slate-300">
-                    {resumeFileName}
-                    {resumeText.trim() ? (
-                      <span className="ml-2 text-emerald-300">
-                        ({resumeText.length.toLocaleString()} chars)
-                      </span>
-                    ) : null}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 text-xs text-slate-400">
-                Resume content is injected into the interviewer prompt. PDF extraction depends on
-                embedded text; scanned-only pages may yield less content.
-              </p>
-            </div>
-          </section>
+          <SetupView
+            character={character}
+            phase={phase}
+            parsing={parsing}
+            resumeFileName={resumeFileName}
+            resumeText={resumeText}
+            fileInputRef={fileInputRef}
+            onCharacterChange={setCharacter}
+            onPickFile={(file) => void onPickFile(file)}
+          />
         )}
 
         {(phase === 'setup' || phase === 'connecting') && (
           <div className={`${GLASS_CARD_CLASS} mb-8 flex flex-col items-center gap-4 text-center`}>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Ready to begin</p>
             <button
               type="button"
               disabled={!vapiConfigured || parsing || phase === 'connecting'}
@@ -562,100 +302,21 @@ export default function App() {
         )}
 
         {phase === 'in-call' && (
-          <section className={`${GLASS_CARD_CLASS} text-center`}>
-            <p className="mb-6 text-sm text-slate-400">Session in progress</p>
-            <div className="mb-8 flex justify-center">
-              <VoiceOrb active={aiSpeaking} volume={volume} />
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={toggleMute}
-                className={SECONDARY_BUTTON_CLASS}
-              >
-                {muted ? (
-                  <>
-                    <MicOff className="h-4 w-4" aria-hidden />
-                    Unmute mic
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-4 w-4" aria-hidden />
-                    Mute mic
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={endCall}
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/40 bg-rose-500/20 px-5 py-2.5 text-sm font-medium text-rose-100 transition hover:bg-rose-500/30"
-              >
-                <PhoneOff className="h-4 w-4" aria-hidden />
-                End call
-              </button>
-            </div>
-          </section>
+          <InCallView
+            muted={muted}
+            aiSpeaking={aiSpeaking}
+            volume={volume}
+            onToggleMute={toggleMute}
+            onEndCall={endCall}
+          />
         )}
 
         {phase === 'report' && report && (
-          <section className={GLASS_CARD_CLASS}>
-            <h2 className="mb-6 text-center text-xl font-semibold text-white">
-              Post-interview report
-            </h2>
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Duration</p>
-                <p className="mt-1 text-2xl font-semibold text-white">
-                  {report.durationSeconds}s
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Clarity score</p>
-                <p className="mt-1 text-2xl font-semibold text-violet-300">
-                  {report.clarityScore}/10
-                </p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-center">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Confidence</p>
-                <p className="mt-1 text-2xl font-semibold text-indigo-300">
-                  {report.confidenceRating}/10
-                </p>
-              </div>
-            </div>
-            <div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment</p>
-              <p className="mt-1 capitalize text-slate-200">{report.sentiment}</p>
-            </div>
-            <div className="mb-6">
-              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
-                Top 3 improved points
-              </p>
-              <ul className="list-inside list-decimal space-y-2 text-sm leading-relaxed text-slate-300">
-                {report.topImprovements.map((t, i) => (
-                  <li key={i} className="text-pretty">
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
-                Transcript summary
-              </p>
-              <pre className="max-h-52 overflow-auto whitespace-pre-wrap break-words text-left text-xs leading-relaxed text-slate-400">
-                {report.transcriptSummary || '—'}
-              </pre>
-            </div>
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={resetToSetup}
-                className="rounded-xl border border-white/15 bg-white/10 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/15"
-              >
-                Back to dashboard
-              </button>
-            </div>
-          </section>
+          <ReportView
+            report={report}
+            onFeedbackUsefulnessRating={handleFeedbackUsefulnessRating}
+            onResetToSetup={resetToSetup}
+          />
         )}
       </div>
     </div>

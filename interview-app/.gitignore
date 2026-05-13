@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+
+# Secrets and env files (keep templates tracked if you add them)
+.env*
+!.env.example
+
+*.local
+
+.DS_Store

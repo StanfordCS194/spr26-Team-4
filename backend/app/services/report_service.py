@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from app.models.report import ReportFeedback, ReportSentiment, ScoreReportRequest
-from app.services.ollama import generate_ollama_text
+from app.services.gemini import generate_gemini_text
 
 
 def _clamp_score(value: Any) -> int | None:
@@ -71,7 +71,7 @@ Scoring guidance:
 Candidate transcript:
 {payload.transcriptSummary or payload.userText or "(empty transcript)"}"""
 
-    text = await generate_ollama_text(prompt, response_format="json", temperature=0.2)
+    text = await generate_gemini_text(prompt)
 
     parsed = _parse_model_json(text)
     if parsed is None:

@@ -20,10 +20,6 @@ What did the tester expect would happen?
 **Possible Action**
 Any recommendations to the team on how to fix it?
 
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 

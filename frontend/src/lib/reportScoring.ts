@@ -9,6 +9,7 @@ export type ReportFeedback = {
   sentiment: ReportSentiment
 }
 
+// Runtime validation keeps the UI from trusting malformed LLM/backend output.
 function isReportFeedback(value: unknown): value is ReportFeedback {
   if (!value || typeof value !== 'object') return false
   const data = value as ReportFeedback
@@ -27,6 +28,8 @@ export async function scoreInterviewFeedback(
   userText: string,
   transcriptSummary: string,
 ): Promise<ReportFeedback> {
+  // The scoring API owns prompt/model details; the frontend only sends the
+  // minimum interview context needed to render a reviewable report.
   const response = await fetch(apiUrl('/api/report/score'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -37,12 +37,14 @@ export function PastSessionDetailView({
             <ChevronLeft className="h-4 w-4" aria-hidden />
             Back
           </button>
+
           <div>
             <h1 className="text-lg font-semibold text-white">
               {CHARACTER_LABELS[session.character] ?? session.character}
             </h1>
             <p className="text-xs text-slate-500">{formatDate(session.createdAt)}</p>
           </div>
+
           {headerAction && <div className="ml-auto">{headerAction}</div>}
         </div>
 
@@ -50,6 +52,8 @@ export function PastSessionDetailView({
           <h2 className="mb-6 text-center text-xl font-semibold text-white">
             Post-interview report
           </h2>
+
+          {/* reuse ReportSummary to keep current and historical reports visually consistent */}
           <ReportSummary report={session} />
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -61,6 +65,7 @@ export function PastSessionDetailView({
               <Download className="h-4 w-4" aria-hidden />
               Download report
             </button>
+
             <button
               type="button"
               onClick={() => onDeleteSession(session.id, onDeleted)}

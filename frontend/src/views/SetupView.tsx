@@ -38,13 +38,16 @@ export function SetupView({
           <User className="h-4 w-4" aria-hidden />
           Character
         </h2>
+
         <div className="grid gap-3 sm:grid-cols-2">
           {CHARACTERS.map((c) => {
             const selected = character === c.id
+
             return (
               <button
                 key={c.id}
                 type="button"
+                // Lock persona changes while connecting/in-call so prompt doesn't change mid-call
                 disabled={phase === 'in-call' || phase === 'connecting'}
                 onClick={() => onCharacterChange(c.id)}
                 className={`rounded-2xl border px-4 py-4 text-left transition ${
@@ -59,6 +62,7 @@ export function SetupView({
                     {c.persona}
                   </span>
                 </div>
+
                 <p className="mt-2 text-sm leading-snug text-slate-300">{c.blurb}</p>
               </button>
             )
@@ -71,6 +75,7 @@ export function SetupView({
           <Briefcase className="h-4 w-4" aria-hidden />
           Resume
         </h2>
+
         <input
           ref={fileInputRef}
           type="file"
@@ -78,16 +83,19 @@ export function SetupView({
           className="hidden"
           onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
         />
+
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             disabled={phase === 'in-call' || phase === 'connecting' || parsing}
+            // Hidden native input preserves browser file handling while allowing custom styling.
             onClick={() => fileInputRef.current?.click()}
             className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
           >
             <Upload className="h-4 w-4" aria-hidden />
             {parsing ? 'Reading file...' : 'Upload resume'}
           </button>
+
           {resumeFileName && (
             <span className="text-sm text-slate-300">
               {resumeFileName}
@@ -99,6 +107,7 @@ export function SetupView({
             </span>
           )}
         </div>
+
         <p className="mt-3 text-xs text-slate-400">
           Resume content is injected into the interviewer prompt. PDF extraction depends on
           embedded text; scanned-only pages may yield less content.

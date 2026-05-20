@@ -38,6 +38,7 @@ export function deleteSession(id: string): void {
 }
 
 export function saveSessionLocal(record: InterviewSessionRecord) {
+  // Keep recent history bounded so localStorage stays predictable for repeat testers.
   const next = [record, ...readLocal()].slice(0, 50)
   localStorage.setItem(LOCAL_KEY, JSON.stringify(next))
 }
@@ -77,6 +78,7 @@ function readAttemptsLocal(): InterviewAttemptRecord[] {
 }
 
 function saveAttemptsLocal(records: InterviewAttemptRecord[]) {
+  // Attempts are only used for aggregate KPIs, so older records can be safely trimmed.
   localStorage.setItem(ATTEMPTS_LOCAL_KEY, JSON.stringify(records.slice(0, 100)))
 }
 
@@ -140,6 +142,7 @@ export function loadKpiMetrics(): InterviewKpiMetrics {
   const sessions = readLocal()
   const attempts = readAttemptsLocal()
   const completedAttempts = attempts.filter((attempt) => attempt.status === 'completed').length
+  // Feedback usefulness is optional, so averages are based only on submitted ratings.
   const feedbackRatings = sessions
     .map((session) => session.feedbackUsefulnessRating)
     .filter((rating): rating is number => typeof rating === 'number')

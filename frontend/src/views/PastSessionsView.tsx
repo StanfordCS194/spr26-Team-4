@@ -35,12 +35,15 @@ export function PastSessionsView({
   onSelectSession,
   onDeleteSession,
 }: PastSessionsViewProps) {
+  // Format KPI values at the boundary of the view for readability
   const averageDuration =
     kpiMetrics.averageDurationSeconds == null
       ? '-'
       : `${Math.round(kpiMetrics.averageDurationSeconds)}s`
+
   const completionRate =
     kpiMetrics.completionRate == null ? '-' : `${Math.round(kpiMetrics.completionRate * 100)}%`
+
   const feedbackUsefulness =
     kpiMetrics.averageFeedbackUsefulnessRating == null
       ? 'No ratings yet'
@@ -54,7 +57,9 @@ export function PastSessionsView({
             <ChevronLeft className="h-4 w-4" aria-hidden />
             Back
           </button>
+
           <h1 className="text-xl font-semibold text-white">Previous Sessions</h1>
+
           {headerAction && <div className="ml-auto">{headerAction}</div>}
         </div>
 
@@ -62,11 +67,12 @@ export function PastSessionsView({
           <p className="text-center text-slate-400">No sessions recorded yet.</p>
         ) : (
           <>
-            {/* KPI tracking: high-yield prototype metrics from local completed sessions and attempts. */}
+            {/* KPI tracking at the top of the screen */}
             <section className="mb-6 rounded-3xl border border-white/15 bg-white/[0.05] p-5 shadow-xl shadow-black/25 backdrop-blur">
               <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 Stats
               </p>
+
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -77,6 +83,7 @@ export function PastSessionsView({
                     Across {kpiMetrics.completedSessions} completed sessions
                   </p>
                 </div>
+
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
                     Completion rate
@@ -86,6 +93,7 @@ export function PastSessionsView({
                     {kpiMetrics.completedAttempts}/{kpiMetrics.startedAttempts} attempts completed
                   </p>
                 </div>
+
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">
                     Feedback usefulness
@@ -99,6 +107,7 @@ export function PastSessionsView({
               <label htmlFor="sort-select" className="whitespace-nowrap text-xs text-slate-400">
                 Sort by
               </label>
+
               <div className="relative">
                 <select
                   id="sort-select"
@@ -110,6 +119,7 @@ export function PastSessionsView({
                   <option value="clarity">Clarity (highest first)</option>
                   <option value="confidence">Confidence (highest first)</option>
                 </select>
+
                 <ChevronDown
                   className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                   aria-hidden
@@ -136,22 +146,27 @@ export function PastSessionsView({
                         {formatDate(session.createdAt)}
                       </span>
                     </div>
+
                     <div className="flex flex-wrap gap-4 text-xs text-slate-400">
                       <span>
                         Duration:{' '}
                         <span className="text-slate-300">{session.durationSeconds}s</span>
                       </span>
+
                       <span>
                         Clarity:{' '}
                         <span className="text-violet-300">{session.clarityScore}/10</span>
                       </span>
+
                       <span>
                         Confidence:{' '}
                         <span className="text-indigo-300">{session.confidenceRating}/10</span>
                       </span>
+
                       <span className="capitalize">
                         Sentiment: <span className="text-slate-300">{session.sentiment}</span>
                       </span>
+
                       {typeof session.feedbackUsefulnessRating === 'number' && (
                         <span>
                           Feedback usefulness:{' '}
@@ -172,6 +187,7 @@ export function PastSessionsView({
                       <Download className="h-3.5 w-3.5" aria-hidden />
                       Download
                     </button>
+
                     <button
                       type="button"
                       onClick={() => onDeleteSession(session.id)}

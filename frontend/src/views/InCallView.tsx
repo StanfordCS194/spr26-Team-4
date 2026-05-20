@@ -22,9 +22,12 @@ export function InCallView({
   return (
     <section className={`${GLASS_CARD_CLASS} text-center`}>
       <p className="mb-6 text-sm text-slate-400">Session in progress</p>
+
       <div className="mb-8 flex justify-center">
+        {/* VoiceOrb is purely visual; call state and audio events stay in useVapiInterview. */}
         <VoiceOrb active={aiSpeaking} volume={volume} />
       </div>
+
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button type="button" onClick={onToggleMute} className={SECONDARY_BUTTON_CLASS}>
           {muted ? (
@@ -39,6 +42,7 @@ export function InCallView({
             </>
           )}
         </button>
+
         <button
           type="button"
           onClick={onEndCall}

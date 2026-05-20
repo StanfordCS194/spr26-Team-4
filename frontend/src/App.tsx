@@ -1,3 +1,11 @@
+/* App.tsx
+
+Main entry point for the application.
+Responsible for loading all app states and UI:
+    onboarding, setup, in-call, report, saved sessions, KPIs
+*/
+
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { History, Moon, Sun } from 'lucide-react'
 import { useVapiInterview } from './hooks/useVapiInterview'
@@ -21,6 +29,8 @@ import { PastSessionsView, type SortBy } from './views/PastSessionsView'
 import { ReportView } from './views/ReportView'
 import { SetupView } from './views/SetupView'
 
+// AppView is intentionally small and local: these are dashboard-level screens,
+// while the Vapi interview phase still controls setup/connecting/in-call/report.
 type AppView = 'main' | 'past-sessions' | 'past-detail'
 type ThemeMode = 'light' | 'dark'
 
@@ -28,11 +38,12 @@ const THEME_STORAGE_KEY = 'interview_app_theme_v1'
 
 function loadTheme(): ThemeMode {
   const saved = localStorage.getItem(THEME_STORAGE_KEY)
-  // Future system-preference support can live here by checking prefers-color-scheme.
+  // Keep theme parsing defensive so malformed localStorage values cannot break rendering.
   return saved === 'light' || saved === 'dark' ? saved : 'dark'
 }
 
 export default function App() {
+  // App owns cross-view UI preferences and first-run onboarding state.
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
   const [onboardingResult, setOnboardingResult] = useState<OnboardingResult | null>(() =>
     loadOnboardingResult(),
@@ -40,18 +51,22 @@ export default function App() {
   const [character, setCharacter] = useState<InterviewCharacter>(
     () => onboardingResult?.assignedCharacter ?? 'tech-lead',
   )
+
+  // Resume parsing state stays in App because its output is required when starting the call.
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Session-review state is centralized here so list/detail/report views stay reusable.
   const [appView, setAppView] = useState<AppView>('main')
   const [selectedSession, setSelectedSession] = useState<InterviewSessionRecord | null>(null)
   const [savedSessions, setSavedSessions] = useState<InterviewSessionRecord[]>(() => loadSessions())
   const [kpiMetrics, setKpiMetrics] = useState<InterviewKpiMetrics>(() => loadKpiMetrics())
   const [sortBy, setSortBy] = useState<SortBy>('date')
 
+  // The custom hook owns all voice-call behavior, keeping App focused on composition/routing.
   const {
     phase,
     muted,
@@ -67,22 +82,27 @@ export default function App() {
   } = useVapiInterview()
 
   useEffect(() => {
+    // Theme classes live on <html> so shared CSS can style every view consistently.
     document.documentElement.classList.toggle('theme-light', theme === 'light')
     document.documentElement.classList.toggle('theme-dark', theme === 'dark')
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
 
-  // Refresh saved sessions whenever returning to setup phase
   useEffect(() => {
     if (phase !== 'setup') return
+
+    // When a report flow returns to setup, reload persisted data so the history/KPI
+    // dashboard reflects the just-finished session without requiring a page refresh.
     const refreshId = window.setTimeout(() => {
       setSavedSessions(loadSessions())
       setKpiMetrics(loadKpiMetrics())
     }, 0)
+
     return () => window.clearTimeout(refreshId)
   }, [phase])
 
   const refreshSessions = useCallback(() => {
+    // Single refresh helper keeps session list and KPI metrics in sync after mutations.
     setSavedSessions(loadSessions())
     setKpiMetrics(loadKpiMetrics())
   }, [])
@@ -90,28 +110,38 @@ export default function App() {
   const handleDelete = useCallback(
     (id: string, afterDelete?: () => void) => {
       if (!window.confirm('Are you sure you want to delete this session? This cannot be undone.')) return
+
       deleteSessionLocal(id)
       refreshSessions()
+
+      // Detail view can pass a navigation callback so deletion does not leave stale UI selected.
       afterDelete?.()
     },
     [refreshSessions],
   )
 
   const sortedSessions = useMemo(() => {
+    // Copy before sorting to avoid mutating React state arrays in place.
     const copy = [...savedSessions]
+
     if (sortBy === 'clarity') return copy.sort((a, b) => b.clarityScore - a.clarityScore)
     if (sortBy === 'confidence') return copy.sort((a, b) => b.confidenceRating - a.confidenceRating)
-    return copy // already stored newest-first
+
+    return copy // Sessions are already stored newest-first by the persistence layer.
   }, [savedSessions, sortBy])
 
   const onPickFile = useCallback(async (file: File | null) => {
     if (!file) return
+
     setParseError(null)
     setParsing(true)
     setResumeFileName(file.name)
+
     try {
+      // parseResumeFile abstracts PDF/text extraction so SetupView stays presentation-only.
       const text = await parseResumeFile(file)
       setResumeText(text)
+
       if (!text.trim()) {
         setParseError('No text could be read from that file. Try another file.')
       }
@@ -123,22 +153,30 @@ export default function App() {
     }
   }, [])
 
+  // Environment gating lets the UI render in development even before Vapi is configured.
   const vapiConfigured = Boolean(import.meta.env.VITE_VAPI_PUBLIC_KEY)
   const callError = error && error !== parseError ? error : null
+
   const beginPractice = useCallback(() => {
+    // Fire-and-forget because call lifecycle state is handled inside useVapiInterview.
     void startCall(character, resumeText)
   }, [character, resumeText, startCall])
 
   const handleFeedbackUsefulnessRating = useCallback(
     (sessionId: string, rating: number) => {
+      // Update locally first so the dashboard reflects the rating even when Supabase is absent.
       updateSessionFeedbackUsefulnessLocal(sessionId, rating)
+
+      // Remote persistence is best-effort; it should not block the user's report flow.
       void updateSessionFeedbackUsefulnessRemote(sessionId, rating)
+
       refreshSessions()
     },
     [refreshSessions],
   )
 
   const handleOnboardingComplete = useCallback((result: OnboardingResult) => {
+    // Keep the assigned character immediately visible in setup after onboarding completes.
     setOnboardingResult(result)
     setCharacter(result.assignedCharacter)
   }, [])
@@ -168,10 +206,12 @@ export default function App() {
     </button>
   )
 
+  // First-run onboarding is a hard gate so every practice session has an initial persona.
   if (!onboardingResult) {
     return <OnboardingView onComplete={handleOnboardingComplete} />
   }
 
+  // History list/detail are separated from interview phase because they are dashboard screens.
   if (appView === 'past-sessions') {
     return (
       <PastSessionsView
@@ -209,6 +249,7 @@ export default function App() {
     <div className={PAGE_CLASS}>
       <div className={SHELL_CLASS}>
         <div className="mb-6 flex justify-end">{themeToggle}</div>
+
         <header className="mb-10 text-center sm:mb-12">
           <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Interview Prep
@@ -227,6 +268,7 @@ export default function App() {
             Resume parsing issue: {parseError}
           </div>
         )}
+
         {callError && (
           <div
             role="alert"
@@ -255,6 +297,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => {
+                // Refresh just before opening history in case a session was saved moments ago.
                 refreshSessions()
                 setAppView('past-sessions')
               }}
@@ -289,11 +332,13 @@ export default function App() {
             >
               {phase === 'connecting' ? 'Connecting…' : 'Start practice'}
             </button>
+
             {phase === 'connecting' && connectingStage && (
               <p className="rounded-md border border-sky-300/20 bg-sky-500/10 px-3 py-1 text-xs text-sky-100">
                 {connectingStage}
               </p>
             )}
+
             <p className="max-w-2xl text-xs text-slate-400">
               Grant microphone access when the browser prompts. Session duration, transcript summary,
               and simple scores are saved locally; Supabase is used only if configured.

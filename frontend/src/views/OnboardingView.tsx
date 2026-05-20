@@ -21,14 +21,18 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
 
   const question = ONBOARDING_QUESTIONS[questionIndex]
   const selectedOptionId = answers[question.id]
+
+  // Derived progress is memoized because it scans the static question list from current answers.
   const answeredCount = useMemo(
     () => ONBOARDING_QUESTIONS.filter((item) => answers[item.id]).length,
     [answers],
   )
+
   const progressPercent = Math.round((answeredCount / ONBOARDING_QUESTIONS.length) * 100)
   const isLastQuestion = questionIndex === ONBOARDING_QUESTIONS.length - 1
 
   function selectOption(optionId: string) {
+    // Store answers by question id so the flow is resilient if questions are reordered later.
     setAnswers((current) => ({
       ...current,
       [question.id]: optionId,
@@ -36,9 +40,11 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
   }
 
   function continueOnboarding() {
+    // Defensive guard: button is disabled, but this prevents keyboard/programmatic submits too.
     if (!selectedOptionId) return
 
     if (isLastQuestion) {
+      // completeOnboarding handles final persistence and persona assignment.
       onComplete(completeOnboarding(answers))
       return
     }
@@ -70,6 +76,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               </span>
               <span>{progressPercent}% complete</span>
             </div>
+
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-400 transition-all duration-300 ease-out"
@@ -80,9 +87,11 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold text-white">{question.prompt}</h2>
+
             <div className="mt-4 grid gap-3">
               {question.options.map((option) => {
                 const selected = option.id === selectedOptionId
+
                 return (
                   <button
                     key={option.id}
@@ -104,6 +113,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
                       >
                         <Check className="h-3.5 w-3.5" aria-hidden />
                       </span>
+
                       <span>
                         <span className="block font-medium text-white">{option.label}</span>
                         <span className="mt-1 block text-sm leading-relaxed text-slate-400">
@@ -121,6 +131,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
             <p className="text-sm text-slate-400">
               Your answers are saved locally, so this only appears once.
             </p>
+
             <button
               type="button"
               disabled={!selectedOptionId}

@@ -20,6 +20,7 @@ export function ReportView({
   const [submittedRating, setSubmittedRating] = useState<number | null>(null)
 
   const submitRating = (rating: number) => {
+    // Optimistically lock in the submitted rating before delegating persistence to App.
     setSubmittedRating(rating)
     onFeedbackUsefulnessRating(report.sessionId, rating)
   }
@@ -29,9 +30,10 @@ export function ReportView({
       <h2 className="mb-6 text-center text-xl font-semibold text-white">
         Post-interview report
       </h2>
+
       <ReportSummary report={report} />
 
-      {/* KPI tracking: optional feedback usefulness rating for KPI 3. */}
+      {/* KPI tracking: optional feedback usefulness rating */}
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-center">
         <p className="text-sm font-medium text-white">Was this feedback useful?</p>
         <p className="mt-1 text-xs text-slate-400">

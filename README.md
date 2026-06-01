@@ -6,7 +6,7 @@ Hello! For more information about our team members, check out the [Wiki](https:/
 Source Control with Git Assignment: Boom, Jerry, Nick, Danny Argudo
 
 ## StarReady
-<img width="291" height="248" alt="starready_logo" src="[https://github.com/user-attachments/assets/a242d31a-5269-4009-9c50-9b0068675ed3](https://github.com/StanfordCS194/spr26-Team-4/blob/main/images/StarReady_Banner.png)" />
+<img height="128" ![starready_banner](images/StarReady_Banner.png)" />
 
 
 Our interview prep app is split into two root-level workspaces:

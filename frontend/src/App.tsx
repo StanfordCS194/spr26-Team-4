@@ -55,6 +55,7 @@ export default function App() {
 
   // Cross-view setup state
   const [resumeText, setResumeText] = useState('')
+  const [jobDescriptionText, setJobDescriptionText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
@@ -158,8 +159,8 @@ export default function App() {
   const callError = error && error !== parseError ? error : null
 
   const beginPractice = useCallback(() => {
-    void startCall(character, resumeText)
-  }, [character, resumeText, startCall])
+    void startCall(character, resumeText, jobDescriptionText)
+  }, [character, resumeText, jobDescriptionText, startCall])
 
   const handleFeedbackUsefulnessRating = useCallback(
     (sessionId: string, rating: number) => {
@@ -320,8 +321,10 @@ export default function App() {
             parsing={parsing}
             resumeFileName={resumeFileName}
             resumeText={resumeText}
+            jobDescriptionText={jobDescriptionText}
             fileInputRef={fileInputRef}
             onCharacterChange={setCharacter}
+            onJobDescriptionChange={setJobDescriptionText}
             onPickFile={(file) => void onPickFile(file)}
           />
         )}

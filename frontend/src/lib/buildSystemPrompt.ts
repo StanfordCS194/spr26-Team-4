@@ -25,12 +25,23 @@ const PERSONA: Record<
 export function buildSystemPrompt(
   character: InterviewCharacter,
   resumeText: string,
+  jobDescriptionText = '',
 ): string {
   const { name, title, voiceNote, personality } = PERSONA[character]
   const resume =
     resumeText.trim().length > 0
       ? resumeText.trim().slice(0, 12000)
       : '(No resume text was provided; ask the candidate to briefly summarize their background before the first STAR question.)'
+
+  const jobDescriptionBlock =
+    jobDescriptionText.trim().length > 0
+      ? `
+
+Target job description (verbatim text; tailor questions to this role's responsibilities and keywords when possible):
+---
+${jobDescriptionText.trim().slice(0, 12000)}
+---`
+      : ''
 
   return `You are ${name}, acting as a ${title} interviewer for a software/tech role in a live mock interview. ${voiceNote}
 
@@ -41,11 +52,12 @@ Your goals:
 - Run a realistic mock behavioral interview that is supportive but rigorous.
 - Ask practical questions that a real tech interviewer would ask.
 - Adapt each question to the candidate's background from the resume.
+- When a target job description is provided, align questions with that role's responsibilities and keywords.
 
 Candidate resume (verbatim text; reference specific employers, projects, skills, and metrics from it when you ask and when you react):
 ---
 ${resume}
----
+---${jobDescriptionBlock}
 
 Interview format and constraints:
 1) Ask exactly 3 behavioral questions total, one at a time.

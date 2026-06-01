@@ -1,7 +1,7 @@
 // Setup view: lets the applicant choose an interviewer persona and attach a resume.
 
-import { type RefObject } from 'react'
-import { Briefcase, Upload, User } from 'lucide-react'
+import { useState, type RefObject } from 'react'
+import { Briefcase, ChevronDown, ChevronUp, Target, Upload, User } from 'lucide-react'
 import type { InterviewPhase } from '../hooks/useVapiInterview'
 import type { InterviewCharacter } from '../lib/buildSystemPrompt'
 import {
@@ -16,8 +16,10 @@ type SetupViewProps = {
   parsing: boolean
   resumeFileName: string | null
   resumeText: string
+  jobDescriptionText: string
   fileInputRef: RefObject<HTMLInputElement | null>
   onCharacterChange: (character: InterviewCharacter) => void
+  onJobDescriptionChange: (text: string) => void
   onPickFile: (file: File | null) => void
 }
 
@@ -27,10 +29,15 @@ export function SetupView({
   parsing,
   resumeFileName,
   resumeText,
+  jobDescriptionText,
   fileInputRef,
   onCharacterChange,
+  onJobDescriptionChange,
   onPickFile,
 }: SetupViewProps) {
+  const [jobDescriptionOpen, setJobDescriptionOpen] = useState(false)
+  const inputsLocked = phase === 'in-call' || phase === 'connecting'
+
   return (
     <section className="mb-8 grid gap-6 xl:grid-cols-5">
       <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
@@ -48,7 +55,7 @@ export function SetupView({
                 key={c.id}
                 type="button"
                 // Lock persona changes while connecting/in-call so prompt doesn't change mid-call
-                disabled={phase === 'in-call' || phase === 'connecting'}
+                disabled={inputsLocked}
                 onClick={() => onCharacterChange(c.id)}
                 className={`rounded-2xl border px-4 py-4 text-left transition ${
                   selected
@@ -87,7 +94,7 @@ export function SetupView({
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            disabled={phase === 'in-call' || phase === 'connecting' || parsing}
+            disabled={inputsLocked || parsing}
             // Hidden native input preserves browser file handling while allowing custom styling.
             onClick={() => fileInputRef.current?.click()}
             className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
@@ -112,6 +119,48 @@ export function SetupView({
           Resume content is injected into the interviewer prompt. PDF extraction depends on
           embedded text; scanned-only pages may yield less content.
         </p>
+
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <button
+            type="button"
+            onClick={() => setJobDescriptionOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-2 text-left text-sm font-semibold uppercase tracking-wide text-slate-300"
+            aria-expanded={jobDescriptionOpen}
+          >
+            <span className="flex items-center gap-2">
+              <Target className="h-4 w-4" aria-hidden />
+              Target role (optional)
+            </span>
+            {jobDescriptionOpen ? (
+              <ChevronUp className="h-4 w-4 shrink-0" aria-hidden />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
+            )}
+          </button>
+
+          {jobDescriptionOpen && (
+            <div className="mt-3">
+              <textarea
+                value={jobDescriptionText}
+                disabled={inputsLocked}
+                onChange={(e) => onJobDescriptionChange(e.target.value)}
+                placeholder="Paste a job description to tailor questions to a specific company or role…"
+                rows={6}
+                className="w-full resize-y rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm leading-relaxed text-slate-200 placeholder:text-slate-500 focus:border-sky-300/40 focus:outline-none focus:ring-1 focus:ring-sky-300/30 disabled:opacity-60"
+              />
+              {jobDescriptionText.trim() ? (
+                <p className="mt-2 text-xs text-emerald-300">
+                  {jobDescriptionText.trim().length.toLocaleString()} chars will be added to the
+                  interviewer prompt
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-400">
+                  Job description text is injected into the interviewer prompt alongside your resume.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )

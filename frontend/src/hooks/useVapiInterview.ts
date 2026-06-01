@@ -213,7 +213,7 @@ export function useVapiInterview() {
   }, [])
 
   const startCall = useCallback(
-    async (character: InterviewCharacter, resumeText: string) => {
+    async (character: InterviewCharacter, resumeText: string, jobDescriptionText = '') => {
       setError(null)
       setReport(null)
       setMuted(false)
@@ -323,7 +323,7 @@ export function useVapiInterview() {
           return
         }
 
-        const assistant = buildAssistantConfig(character, resumeText)
+        const assistant = buildAssistantConfig(character, resumeText, jobDescriptionText)
 
         let timeoutId: ReturnType<typeof setTimeout> | undefined
         const timeoutPromise = new Promise<never>((_, reject) => {

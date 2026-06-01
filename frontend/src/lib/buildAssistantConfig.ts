@@ -17,8 +17,9 @@ const VOICE: Record<InterviewCharacter, 'marissa' | 'paul'> = {
 export function buildAssistantConfig(
   character: InterviewCharacter,
   resumeText: string,
+  jobDescriptionText = '',
 ): CreateAssistantDTO {
-  const system = buildSystemPrompt(character, resumeText)
+  const system = buildSystemPrompt(character, resumeText, jobDescriptionText)
 
   return {
     name: 'StarReady',

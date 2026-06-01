@@ -6,7 +6,7 @@ Hello! For more information about our team members, check out the [Wiki](https:/
 Source Control with Git Assignment: Boom, Jerry, Nick, Danny Argudo
 
 ## StarReady
-<img height="128" ![starready_banner](images/StarReady_Banner.png)" />
+![starready_banner](images/StarReady_Banner.png)
 
 
 Our interview prep app is split into two root-level workspaces:

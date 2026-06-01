@@ -248,9 +248,16 @@ export default function App() {
         <div className="mb-6 flex justify-end">{themeToggle}</div>
 
         <header className="mb-10 text-center sm:mb-12">
-          <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Interview Prep
-          </h1>
+          <div className="flex items-center justify-center gap-3">
+            <img
+              src="/StarReady_Logo_transparent.svg"
+              alt=""
+              className="app-logo h-12 w-12 shrink-0 sm:h-14 sm:w-14"
+            />
+            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              StarReady
+            </h1>
+          </div>
           <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-slate-400 sm:text-base">
             Practice with a voice interviewer in a focused dashboard: choose a persona, upload your
             resume, and run a three-question STAR session with instant micro-feedback.

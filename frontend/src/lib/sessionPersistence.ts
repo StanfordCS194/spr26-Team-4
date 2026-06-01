@@ -217,7 +217,7 @@ export async function saveSessionRemote(record: InterviewSessionRecord) {
   const { error } = await client.from('interview_sessions').insert(row)
 
   if (error) {
-    console.warn('[InterviewApp] Supabase insert skipped:', error.message)
+    console.warn('[StarReady] Supabase insert skipped:', error.message)
   }
 }
 
@@ -234,6 +234,6 @@ export async function updateSessionFeedbackUsefulnessRemote(
     .eq('id', id)
 
   if (error) {
-    console.warn('[InterviewApp] Supabase feedback rating update skipped:', error.message)
+    console.warn('[StarReady] Supabase feedback rating update skipped:', error.message)
   }
 }

@@ -21,7 +21,7 @@ export function buildAssistantConfig(
   const system = buildSystemPrompt(character, resumeText)
 
   return {
-    name: 'InterviewApp',
+    name: 'StarReady',
     transcriber: {
       provider: 'deepgram',
       model: 'nova-2',

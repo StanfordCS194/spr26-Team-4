@@ -1,4 +1,4 @@
-# InterviewApp Frontend
+# StarReady Frontend
 
 React/Vite frontend for the behavioral interview prep app. It renders the UI, owns browser-only Vapi call state, and calls the backend for resume parsing and report scoring.
 

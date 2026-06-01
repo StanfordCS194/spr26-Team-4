@@ -30,7 +30,9 @@ export function buildAssistantConfig(
     model: {
       provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
+      temperature: 0.3,
       messages: [{ role: 'system', content: system }],
+      tools: [{ type: 'endCall' }],
     },
     voice: {
       provider: '11labs',

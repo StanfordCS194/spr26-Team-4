@@ -4,6 +4,7 @@ type ReportSummaryData = {
   durationSeconds: number
   transcriptSummary: string
   sentiment: 'positive' | 'neutral' | 'negative'
+  sentimentSummary?: string
   clarityScore: number
   confidenceRating: number
   topImprovements: string[]
@@ -78,10 +79,14 @@ export function ReportSummary({ report }: ReportSummaryProps) {
       </div>
 
       <div className={`mb-6 rounded-xl border p-4 ${sentimentCardClass(report.sentiment)}`}>
-        <p className="text-xs uppercase tracking-wide text-slate-500">Sentiment</p>
-        <p className={`mt-1 font-medium capitalize ${sentimentValueClass(report.sentiment)}`}>
+        <p className="text-xs uppercase tracking-wide text-slate-500">Interview tone</p>
+        <p className="mt-1 text-xs text-slate-400">Based on how your answers came across</p>
+        <p className={`mt-2 font-medium capitalize ${sentimentValueClass(report.sentiment)}`}>
           {report.sentiment}
         </p>
+        {report.sentimentSummary ? (
+          <p className="mt-2 text-sm leading-relaxed text-slate-300">{report.sentimentSummary}</p>
+        ) : null}
       </div>
 
       {typeof report.feedbackUsefulnessRating === 'number' && (

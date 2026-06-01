@@ -60,7 +60,8 @@ export function downloadSessionFile(s: InterviewSessionRecord) {
     '------',
     `Clarity:    ${s.clarityScore}/10`,
     `Confidence: ${s.confidenceRating}/10`,
-    `Sentiment:  ${s.sentiment}`,
+    `Interview tone: ${s.sentiment}`,
+    ...(s.sentimentSummary ? [`Tone summary: ${s.sentimentSummary}`] : []),
     ...(typeof s.feedbackUsefulnessRating === 'number'
       ? [`Feedback usefulness: ${s.feedbackUsefulnessRating}/10`]
       : []),

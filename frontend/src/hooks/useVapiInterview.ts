@@ -32,6 +32,7 @@ export type PostInterviewReport = {
   confidenceRating: number
   topImprovements: string[]
   sentiment: 'positive' | 'neutral' | 'negative'
+  sentimentSummary: string
 }
 
 type TranscriptChunk = { role: string; text: string }
@@ -122,12 +123,14 @@ export function useVapiInterview() {
     let confidenceRating = 0
     let topImprovements: string[] = []
     let sentiment: PostInterviewReport['sentiment'] = 'neutral'
+    let sentimentSummary = ''
     try {
       const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary)
       clarityScore = feedback.clarityScore
       confidenceRating = feedback.confidenceRating
       topImprovements = feedback.topImprovements
       sentiment = feedback.sentiment
+      sentimentSummary = feedback.sentimentSummary
     } catch (e) {
       // Scoring failed — surface the error but still show the report so the
       // user keeps their transcript and session data.
@@ -145,6 +148,7 @@ export function useVapiInterview() {
       confidenceRating,
       topImprovements,
       sentiment,
+      sentimentSummary,
     }
 
     setReport(session)
@@ -159,6 +163,7 @@ export function useVapiInterview() {
       durationSeconds: session.durationSeconds,
       transcriptSummary: session.transcriptSummary,
       sentiment: session.sentiment,
+      sentimentSummary: session.sentimentSummary,
       character,
       clarityScore: session.clarityScore,
       confidenceRating: session.confidenceRating,

@@ -7,6 +7,7 @@ export type ReportFeedback = {
   confidenceRating: number
   topImprovements: string[]
   sentiment: ReportSentiment
+  sentimentSummary: string
 }
 
 // Runtime validation keeps the UI from trusting malformed LLM/backend output.
@@ -19,6 +20,8 @@ function isReportFeedback(value: unknown): value is ReportFeedback {
     (data.sentiment === 'positive' ||
       data.sentiment === 'neutral' ||
       data.sentiment === 'negative') &&
+    typeof data.sentimentSummary === 'string' &&
+    data.sentimentSummary.trim().length > 0 &&
     Array.isArray(data.topImprovements) &&
     data.topImprovements.every((item) => typeof item === 'string')
   )

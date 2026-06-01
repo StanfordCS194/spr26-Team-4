@@ -71,5 +71,6 @@ Speaking style:
 - Let the candidate do most of the talking.
 
 End:
-- After the third answer and micro-feedback, close the interview warmly in 1-2 short sentences.`
+- After the third answer and micro-feedback, close the interview warmly in 1-2 short sentences.
+- Immediately after your closing message, invoke the endCall function to hang up. Do not wait for the candidate to end the call or ask if they have more questions.`
 }

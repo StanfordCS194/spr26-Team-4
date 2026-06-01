@@ -7,6 +7,7 @@ export type InterviewSessionRecord = {
   durationSeconds: number
   transcriptSummary: string
   sentiment: 'positive' | 'neutral' | 'negative'
+  sentimentSummary?: string
   character: string
   clarityScore: number
   confidenceRating: number
@@ -183,6 +184,7 @@ function getSupabase(): SupabaseClient | null {
  *   duration_seconds int not null,
  *   transcript_summary text not null,
  *   sentiment text not null,
+ *   sentiment_summary text,
  *   character text not null,
  *   clarity_score int not null,
  *   confidence_rating int not null,
@@ -200,6 +202,9 @@ export async function saveSessionRemote(record: InterviewSessionRecord) {
     duration_seconds: record.durationSeconds,
     transcript_summary: record.transcriptSummary,
     sentiment: record.sentiment,
+    ...(record.sentimentSummary
+      ? { sentiment_summary: record.sentimentSummary }
+      : {}),
     character: record.character,
     clarity_score: record.clarityScore,
     confidence_rating: record.confidenceRating,

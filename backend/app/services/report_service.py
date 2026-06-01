@@ -40,6 +40,13 @@ def _parse_model_json(text: str) -> dict[str, Any] | None:
 _IMPROVEMENT_PLACEHOLDER = "Review your response for clarity and conciseness."
 
 
+def _normalize_sentiment_summary(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
 def _normalize_improvements(value: Any) -> list[str] | None:
     if not isinstance(value, list):
         return None
@@ -59,13 +66,15 @@ Return JSON only with this schema:
   "clarityScore": number (1-10),
   "confidenceRating": number (1-10),
   "sentiment": "positive" | "neutral" | "negative",
+  "sentimentSummary": string,
   "topImprovements": [string, string, string]
 }}
 
 Scoring guidance:
 - Clarity: structure, directness, completeness, concision.
 - Confidence: ownership language, certainty, assertiveness without arrogance.
-- Sentiment: overall tone of candidate responses.
+- Sentiment: overall tone of the candidate's interview answers (not the interviewer's mood).
+- sentimentSummary: one actionable sentence about how the candidate came across in the interview (e.g. energy, initiative, specificity). Address the candidate as "you".
 - Improvements: actionable, specific, and tailored to this transcript.
 
 Candidate transcript:
@@ -80,12 +89,14 @@ Candidate transcript:
     clarity_score = _clamp_score(parsed.get("clarityScore"))
     confidence_rating = _clamp_score(parsed.get("confidenceRating"))
     sentiment = _normalize_sentiment(parsed.get("sentiment"))
+    sentiment_summary = _normalize_sentiment_summary(parsed.get("sentimentSummary"))
     top_improvements = _normalize_improvements(parsed.get("topImprovements"))
 
     if (
         clarity_score is None
         or confidence_rating is None
         or sentiment is None
+        or sentiment_summary is None
         or top_improvements is None
     ):
         raise ValueError("Ollama scoring response is missing required fields.")
@@ -94,5 +105,6 @@ Candidate transcript:
         clarityScore=clarity_score,
         confidenceRating=confidence_rating,
         sentiment=sentiment,
+        sentimentSummary=sentiment_summary,
         topImprovements=top_improvements,
     )

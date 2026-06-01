@@ -29,8 +29,9 @@ import { PastSessionsView, type SortBy } from './views/PastSessionsView'
 import { ReportView } from './views/ReportView'
 import { SetupView } from './views/SetupView'
 
-// AppView is intentionally small and local: these are dashboard-level screens,
-// while the Vapi interview phase still controls setup/connecting/in-call/report.
+// Dashboard navigation states
+// These screens are not part of the live Vapi lifecycle, so they are modeled
+// separately from `phase`
 type AppView = 'main' | 'past-sessions' | 'past-detail'
 type ThemeMode = 'light' | 'dark'
 
@@ -43,7 +44,7 @@ function loadTheme(): ThemeMode {
 }
 
 export default function App() {
-  // App owns cross-view UI preferences and first-run onboarding state.
+  // Onboarding (set initial interviewer)
   const [theme, setTheme] = useState<ThemeMode>(() => loadTheme())
   const [onboardingResult, setOnboardingResult] = useState<OnboardingResult | null>(() =>
     loadOnboardingResult(),
@@ -52,21 +53,22 @@ export default function App() {
     () => onboardingResult?.assignedCharacter ?? 'tech-lead',
   )
 
-  // Resume parsing state stays in App because its output is required when starting the call.
+  // Cross-view setup state
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Session-review state is centralized here so list/detail/report views stay reusable.
+  // Cross-view history state
+  // Keep one centralized copy to avoid stale view-local state
   const [appView, setAppView] = useState<AppView>('main')
   const [selectedSession, setSelectedSession] = useState<InterviewSessionRecord | null>(null)
   const [savedSessions, setSavedSessions] = useState<InterviewSessionRecord[]>(() => loadSessions())
   const [kpiMetrics, setKpiMetrics] = useState<InterviewKpiMetrics>(() => loadKpiMetrics())
   const [sortBy, setSortBy] = useState<SortBy>('date')
 
-  // The custom hook owns all voice-call behavior, keeping App focused on composition/routing.
+  // Live interview
   const {
     phase,
     muted,
@@ -92,7 +94,7 @@ export default function App() {
     if (phase !== 'setup') return
 
     // When a report flow returns to setup, reload persisted data so the history/KPI
-    // dashboard reflects the just-finished session without requiring a page refresh.
+    // dashboard reflects the just-finished session
     const refreshId = window.setTimeout(() => {
       setSavedSessions(loadSessions())
       setKpiMetrics(loadKpiMetrics())
@@ -102,7 +104,6 @@ export default function App() {
   }, [phase])
 
   const refreshSessions = useCallback(() => {
-    // Single refresh helper keeps session list and KPI metrics in sync after mutations.
     setSavedSessions(loadSessions())
     setKpiMetrics(loadKpiMetrics())
   }, [])
@@ -114,7 +115,6 @@ export default function App() {
       deleteSessionLocal(id)
       refreshSessions()
 
-      // Detail view can pass a navigation callback so deletion does not leave stale UI selected.
       afterDelete?.()
     },
     [refreshSessions],
@@ -127,7 +127,7 @@ export default function App() {
     if (sortBy === 'clarity') return copy.sort((a, b) => b.clarityScore - a.clarityScore)
     if (sortBy === 'confidence') return copy.sort((a, b) => b.confidenceRating - a.confidenceRating)
 
-    return copy // Sessions are already stored newest-first by the persistence layer.
+    return copy
   }, [savedSessions, sortBy])
 
   const onPickFile = useCallback(async (file: File | null) => {
@@ -138,7 +138,7 @@ export default function App() {
     setResumeFileName(file.name)
 
     try {
-      // parseResumeFile abstracts PDF/text extraction so SetupView stays presentation-only.
+      // parseResumeFile abstracts PDF/text extraction so SetupView stays presentation-only
       const text = await parseResumeFile(file)
       setResumeText(text)
 
@@ -158,16 +158,13 @@ export default function App() {
   const callError = error && error !== parseError ? error : null
 
   const beginPractice = useCallback(() => {
-    // Fire-and-forget because call lifecycle state is handled inside useVapiInterview.
     void startCall(character, resumeText)
   }, [character, resumeText, startCall])
 
   const handleFeedbackUsefulnessRating = useCallback(
     (sessionId: string, rating: number) => {
-      // Update locally first so the dashboard reflects the rating even when Supabase is absent.
+      // Update locally first so the dashboard reflects the rating even when Supabase is absent
       updateSessionFeedbackUsefulnessLocal(sessionId, rating)
-
-      // Remote persistence is best-effort; it should not block the user's report flow.
       void updateSessionFeedbackUsefulnessRemote(sessionId, rating)
 
       refreshSessions()
@@ -176,7 +173,6 @@ export default function App() {
   )
 
   const handleOnboardingComplete = useCallback((result: OnboardingResult) => {
-    // Keep the assigned character immediately visible in setup after onboarding completes.
     setOnboardingResult(result)
     setCharacter(result.assignedCharacter)
   }, [])
@@ -206,12 +202,12 @@ export default function App() {
     </button>
   )
 
-  // First-run onboarding is a hard gate so every practice session has an initial persona.
+  // Render onboarding for first-time users
   if (!onboardingResult) {
     return <OnboardingView onComplete={handleOnboardingComplete} />
   }
 
-  // History list/detail are separated from interview phase because they are dashboard screens.
+  // Render history list and details before interview starts
   if (appView === 'past-sessions') {
     return (
       <PastSessionsView
@@ -245,6 +241,7 @@ export default function App() {
     )
   }
 
+  // Render interview lifecycle and voice agent last.
   return (
     <div className={PAGE_CLASS}>
       <div className={SHELL_CLASS}>

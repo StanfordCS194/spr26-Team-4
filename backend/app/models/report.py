@@ -16,3 +16,4 @@ class ReportFeedback(BaseModel):
     confidenceRating: int
     topImprovements: list[str]
     sentiment: ReportSentiment
+    sentimentSummary: str

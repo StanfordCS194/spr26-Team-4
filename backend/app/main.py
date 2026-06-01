@@ -12,7 +12,7 @@ load_dotenv()
 
 frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 
-app = FastAPI(title="InterviewApp Backend")
+app = FastAPI(title="StarReady Backend")
 
 app.add_middleware(
     CORSMiddleware,

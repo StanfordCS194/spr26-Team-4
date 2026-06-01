@@ -332,7 +332,7 @@ export default function App() {
               type="button"
               disabled={!vapiConfigured || parsing || phase === 'connecting'}
               onClick={beginPractice}
-              className="w-full max-w-lg rounded-2xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-indigo-900/45 transition hover:from-sky-400 hover:via-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full max-w-lg rounded-2xl bg-sky-500 px-8 py-4 text-lg font-semibold text-white shadow-xl shadow-sky-900/30 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {phase === 'connecting' ? 'Connecting…' : 'Start practice'}
             </button>
@@ -344,8 +344,7 @@ export default function App() {
             )}
 
             <p className="max-w-2xl text-xs text-slate-400">
-              Grant microphone access when the browser prompts. Session duration, transcript summary,
-              and simple scores are saved locally; Supabase is used only if configured.
+              Grant microphone access when the browser prompts. Transcripts and scores are saved locally.
             </p>
           </div>
         )}

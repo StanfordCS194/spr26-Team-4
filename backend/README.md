@@ -1,4 +1,4 @@
-# InterviewApp Backend
+# StarReady Backend
 
 FastAPI backend for backend-flow work that should not run in the browser.
 

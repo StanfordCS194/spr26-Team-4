@@ -98,7 +98,8 @@ html.theme-light .text-rose-300 {
   color: #be123c !important;
 }
 
-html.theme-light .bg-gradient-to-r.text-white {
+html.theme-light .bg-gradient-to-r.text-white,
+html.theme-light .bg-sky-500.text-white {
   color: #ffffff !important;
 }
 

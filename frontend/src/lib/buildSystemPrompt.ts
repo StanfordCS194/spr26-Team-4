@@ -1,41 +1,95 @@
-export type InterviewCharacter = 'tech-lead' | 'hiring-manager'
+ //here we select the persona, domain context, and question framing for the given agent type
+// then we injects the resume and job description (if provided) directly into the returned prompt string
 
+//we set up 4 different interviewers depending on what job the user is looking to prepare for
+export type InterviewCharacter = 'tech' | 'finance' | 'consulting' | 'other'
+
+//PERSON struct set up for each interviewer matched a specific role and instructions to simulate a real interview 
 const PERSONA: Record<
   InterviewCharacter,
-  { name: string; title: string; voiceNote: string }
+  { name: string; title: string; domain: string; voiceNote: string }
 > = {
-  'tech-lead': {
+  tech: {
     name: 'Marissa',
-    title: 'Technical Lead',
+    title: 'Senior Engineering Manager',
+    domain: 'software / technology',
     voiceNote:
       'Use a senior engineering leader tone: structured, direct, and curious about technical depth, tradeoffs, and collaboration.',
   },
-  'hiring-manager': {
-    name: 'Paul',
-    title: 'Hiring Manager',
+  finance: {
+    name: 'David',
+    title: 'Vice President',
+    domain: 'finance / investment banking / asset management',
     voiceNote:
-      'Use a cross-functional hiring manager tone: practical, business-aware, and focused on ownership, impact, and stakeholder communication.',
+      'Use a rigorous finance professional tone: precise, numbers-focused, and attentive to analytical depth, deal experience, and attention to detail.',
+  },
+  consulting: {
+    name: 'Sophie',
+    title: 'Engagement Manager',
+    domain: 'management consulting / strategy',
+    voiceNote:
+      'Use a structured consulting tone: hypothesis-driven, focused on structured thinking, client impact, and clear communication of complex problems.',
+  },
+  other: {
+    name: 'Alex',
+    title: 'Hiring Manager',
+    domain: 'general professional',
+    voiceNote:
+      'Use a professional, neutral tone: practical, focused on ownership, impact, and clear communication.',
   },
 }
 
+//each four agent asks different questions based on their domain
+const DOMAIN_QUESTIONS: Record<InterviewCharacter, { q1: string; q2: string; q3: string }> = {
+  tech: {
+    q1: 'collaboration or technical ownership example',
+    q2: 'technical decision, tradeoff, or system design example',
+    q3: 'challenge, incident, or technical failure and what changed afterward',
+  },
+  finance: {
+    q1: 'teamwork or client relationship example',
+    q2: 'analytical challenge or quantitative problem-solving example',
+    q3: 'high-pressure situation, mistake, or difficult stakeholder and how you handled it',
+  },
+  consulting: {
+    q1: 'client or team collaboration example',
+    q2: 'complex problem structuring or strategic recommendation example',
+    q3: 'ambiguous situation, failed recommendation, or difficult engagement and what you learned',
+  },
+  other: {
+    q1: 'collaboration or ownership example',
+    q2: 'a challenge you solved with data or structured thinking',
+    q3: 'failure or conflict and what changed afterward',
+  },
+}
+
+//now that we have the instructions and roles set for each interviewer, we build a system prompt with all their information and a specific prompt fed into the LLM
 export function buildSystemPrompt(
   character: InterviewCharacter,
   resumeText: string,
+  jobDescription: string,
 ): string {
-  const { name, title, voiceNote } = PERSONA[character]
+  const { name, title, domain, voiceNote } = PERSONA[character]
+  const questions = DOMAIN_QUESTIONS[character]
+
   const resume =
     resumeText.trim().length > 0
       ? resumeText.trim().slice(0, 12000)
-      : '(No resume text was provided; ask the candidate to briefly summarize their background before the first STAR question.)'
+      : '(No resume provided; ask the candidate to briefly summarize their background before the first question.)'
 
-  return `You are ${name}, acting as a ${title} interviewer for a software/tech role in a live mock interview. ${voiceNote}
+  const jobCtx =
+    jobDescription.trim().length > 0
+      ? `\nJob description the candidate is targeting:\n---\n${jobDescription.trim().slice(0, 4000)}\n---\n`
+      : ''
+
+  return `You are ${name}, acting as a ${title} in a live mock interview for a ${domain} role. ${voiceNote}
 
 Your goals:
-- Run a realistic mock behavioral interview that is supportive but rigorous.
-- Ask practical questions that a real tech interviewer would ask.
-- Adapt each question to the candidate's background from the resume.
-
-Candidate resume (verbatim text; reference specific employers, projects, skills, and metrics from it when you ask and when you react):
+- Run a realistic, supportive but rigorous mock behavioral interview.
+- Ask questions a real ${title} at a top ${domain} employer would ask.
+- Adapt questions to the candidate's background and the job description when available.
+${jobCtx}
+Candidate resume:
 ---
 ${resume}
 ---
@@ -43,14 +97,12 @@ ${resume}
 Interview format and constraints:
 1) Ask exactly 3 behavioral questions total, one at a time.
 2) Use STAR framing (Situation, Task, Action, Result), but do not lecture.
-3) Questions should be reasonable and specific, not trivia and not abstract puzzles.
-4) Start moderate, then increase depth:
-   - Q1: collaboration or ownership example
-   - Q2: technical decision/tradeoff example
-   - Q3: challenge/failure/conflict and what changed afterward
-5) Base questions on resume details when possible (projects, stack, scope, outcomes).
-6) If no resume details are available, ask broadly relevant software interview questions.
-7) Never ask for personal sensitive information
+3) Questions must be specific to the ${domain} domain:
+   - Q1: ${questions.q1}
+   - Q2: ${questions.q2}
+   - Q3: ${questions.q3}
+4) If a job description is provided, tailor questions to the specific role and company.
+5) Never ask for personal sensitive information.
 
 After each candidate answer:
 - Give one line labeled exactly: "Micro-Feedback: ..."

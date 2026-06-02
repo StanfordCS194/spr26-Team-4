@@ -1,3 +1,4 @@
+import { apiUrl } from './lib/apiClient'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Briefcase,
@@ -29,24 +30,38 @@ const CHARACTERS: {
   persona: string
   blurb: string
 }[] = [
-  {
-    id: 'tech-lead',
-    label: 'Tech Lead',
+  { 
+    id: 'tech',
+    label: 'Tech',
     persona: 'Marissa',
-    blurb: 'Depth on architecture, tradeoffs, and collaboration.',
+    blurb: 'Software, ML, and product roles. Depth on systems, tradeoffs, and collaboration.',
   },
   {
-    id: 'hiring-manager',
-    label: 'Hiring Manager',
-    persona: 'Paul',
-    blurb: 'Scope, outcomes, and how you work with stakeholders.',
+    id: 'finance',
+    label: 'Finance',
+    persona: 'David',
+    blurb: 'Banking, investing, and fintech. Focused on analytics, deals, and precision.',
   },
-]
+  {
+    id: 'consulting',
+    label: 'Consulting',
+    persona: 'Sophie',
+    blurb: 'Strategy and management consulting. Structured thinking and client impact.',
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    persona: 'Alex',
+    blurb: 'General behavioral interview. Works for any role not covered above.',
+  },
+] 
 
 const CHARACTER_LABELS: Record<string, string> = {
-  'tech-lead': 'Tech Lead',
-  'hiring-manager': 'Hiring Manager',
-}
+  tech: 'Tech',
+  finance: 'Finance',
+  consulting: 'Consulting',
+  other: 'Other',
+} 
 
 const PAGE_CLASS =
   'min-h-svh bg-slate-950 bg-[radial-gradient(circle_at_15%_15%,_rgba(56,189,248,0.22),_transparent_35%),radial-gradient(circle_at_85%_10%,_rgba(167,139,250,0.22),_transparent_40%),linear-gradient(180deg,_#020617_0%,_#0f172a_45%,_#111827_100%)] text-slate-100'
@@ -103,11 +118,17 @@ type AppView = 'main' | 'past-sessions' | 'past-detail'
 
 export default function App() {
   // ── Frontend/UI state ─────────────────────────────────────────────────────
-  const [character, setCharacter] = useState<InterviewCharacter>('tech-lead')
+  const [character, setCharacter] = useState<InterviewCharacter>('tech')
   const [resumeText, setResumeText] = useState('')
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
+  const [jobDescription, setJobDescription] = useState('')
+  const [classifying, setClassifying] = useState(false)
+  const [recommendedAgent, setRecommendedAgent] = useState<{
+    agentType: InterviewCharacter
+    reasoning: string
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [appView, setAppView] = useState<AppView>('main')
@@ -182,8 +203,34 @@ export default function App() {
   const vapiConfigured = Boolean(import.meta.env.VITE_VAPI_PUBLIC_KEY)
   const callError = error && error !== parseError ? error : null
   const beginPractice = useCallback(() => {
-    void startCall(character, resumeText)
-  }, [character, resumeText, startCall])
+    void startCall(character, resumeText, jobDescription)
+  }, [character, resumeText, jobDescription, startCall])
+
+  //classifyJob used to recommend an agent to interview with based on the inputted job description from the user
+  // POSTs (API post) the current jobDescription to the backend classify endpoint and on success updates
+  // both the recommendedAgent state and the selected character to match the recommendation
+  const classifyJob = useCallback(async () => {
+    if (!jobDescription.trim()) return
+    setClassifying(true)
+    setRecommendedAgent(null)
+    try {
+      const res = await fetch(apiUrl('/api/report/classify'), {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobDescription }),
+      })
+      if (res.ok) {
+        const data = await res.json() as { agentType: InterviewCharacter; reasoning: string }
+        setRecommendedAgent(data)
+        setCharacter(data.agentType)
+      } 
+    } catch {
+      // silently ignore; user can pick manually
+    } finally {
+      setClassifying(false)
+    } 
+  }, [jobDescription])
+
 
   // ── Past sessions list ────────────────────────────────────────────────────
   if (appView === 'past-sessions') {
@@ -462,81 +509,114 @@ export default function App() {
           </div>
         )}
 
-        {phase !== 'report' && (
-          <section className="mb-8 grid gap-6 xl:grid-cols-5">
-            <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <User className="h-4 w-4" aria-hidden />
-                Character
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {CHARACTERS.map((c) => {
-                  const selected = character === c.id
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      disabled={phase === 'in-call' || phase === 'connecting'}
-                      onClick={() => setCharacter(c.id)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
-                        selected
-                          ? 'border-sky-300/70 bg-sky-500/15 ring-1 ring-sky-300/45'
-                          : 'border-white/10 bg-white/[0.02] hover:border-sky-300/35 hover:bg-white/[0.06]'
-                      } disabled:opacity-60`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-white">{c.label}</span>
-                        <span className="rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-sky-100">
-                          {c.persona}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-snug text-slate-300">{c.blurb}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className={`${GLASS_CARD_CLASS} xl:col-span-2`}>
-              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <Briefcase className="h-4 w-4" aria-hidden />
-                Resume
-              </h2>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.txt,text/plain,application/pdf"
-                className="hidden"
-                onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-              />
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={phase === 'in-call' || phase === 'connecting' || parsing}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
-                >
-                  <Upload className="h-4 w-4" aria-hidden />
-                  {parsing ? 'Reading file...' : 'Upload resume'}
-                </button>
-                {resumeFileName && (
-                  <span className="text-sm text-slate-300">
-                    {resumeFileName}
-                    {resumeText.trim() ? (
-                      <span className="ml-2 text-emerald-300">
-                        ({resumeText.length.toLocaleString()} chars)
-                      </span>
-                    ) : null}
+{phase !== 'report' && (
+    <section className="mb-8 grid gap-6 xl:grid-cols-5">
+      <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
+        <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+          <User className="h-4 w-4" aria-hidden />
+          Interviewer
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {CHARACTERS.map((c) => {
+            const selected = character === c.id
+            return (
+              <button
+                key={c.id}
+                type="button"
+                disabled={phase === 'in-call' || phase === 'connecting'}
+                onClick={() => setCharacter(c.id)}
+                className={`rounded-2xl border px-4 py-4 text-left transition ${
+                  selected
+                    ? 'border-sky-300/70 bg-sky-500/15 ring-1 ring-sky-300/45'
+                    : 'border-white/10 bg-white/[0.02] hover:border-sky-300/35 hover:bg-white/[0.06]'
+                } disabled:opacity-60`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-white">{c.label}</span>
+                  <span className="rounded-md border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-sky-100">
+                    {c.persona}
                   </span>
-                )}
-              </div>
-              <p className="mt-3 text-xs text-slate-400">
-                Resume content is injected into the interviewer prompt. PDF extraction depends on
-                embedded text; scanned-only pages may yield less content.
+                </div>
+                <p className="mt-2 text-sm leading-snug text-slate-300">{c.blurb}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className={`${GLASS_CARD_CLASS} xl:col-span-2 flex flex-col gap-5`}>
+        {/* Job description */}
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+            <Briefcase className="h-4 w-4" aria-hidden />
+            Job Description
+          </h2>
+          <textarea
+            rows={5}
+            placeholder="Paste the description of the job you're looking for here (required)…"
+            disabled={phase === 'in-call' || phase === 'connecting'}
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            className="w-full resize-none rounded-xl border border-white/15 bg-black/20 px-3 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/50 disabled:opacity-50"
+          />
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              disabled={!jobDescription.trim() || classifying || phase === 'in-call' || phase === 'connecting'}
+              onClick={() => void classifyJob()}
+              className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2 text-xs font-medium text-violet-100 transition hover:bg-violet-500/25 disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              {classifying ? 'Analyzing…' : 'Recommend interviewer'}
+            </button>
+            {recommendedAgent && (
+              <p className="text-xs text-slate-400">
+                Recommended: <span className="text-sky-300">{CHARACTER_LABELS[recommendedAgent.agentType]}</span>
+                {' '}— {recommendedAgent.reasoning}
               </p>
-            </div>
-          </section>
-        )}
+            )}
+          </div>
+        </div>
+
+        {/* Resume upload */}
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+            <User className="h-4 w-4" aria-hidden />
+            Resume <span className="text-xs font-normal normal-case text-slate-500">(optional)</span>
+          </h2>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt,text/plain,application/pdf"
+            className="hidden"
+            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={phase === 'in-call' || phase === 'connecting' || parsing}
+              onClick={() => fileInputRef.current?.click()}
+              className={`${SECONDARY_BUTTON_CLASS} border-sky-200/30 bg-sky-500/15 hover:bg-sky-500/25`}
+            >
+              <Upload className="h-4 w-4" aria-hidden />
+              {parsing ? 'Reading file...' : 'Upload resume'}
+            </button>
+            {resumeFileName && (
+              <span className="text-sm text-slate-300">
+                {resumeFileName}
+                {resumeText.trim() ? (
+                  <span className="ml-2 text-emerald-300">
+                    ({resumeText.length.toLocaleString()} chars)
+                  </span>
+                ) : null}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+  
 
         {(phase === 'setup' || phase === 'connecting') && (
           <div className={`${GLASS_CARD_CLASS} mb-8 flex flex-col items-center gap-4 text-center`}>

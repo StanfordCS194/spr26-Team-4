@@ -67,7 +67,7 @@ export function useVapiInterview() {
   const conversationRef = useRef<{ role?: string; content?: string | null }[]>(
     [],
   )
-  const characterRef = useRef<InterviewCharacter>('tech-lead')
+  const characterRef = useRef<InterviewCharacter>('tech')
   const finalizedRef = useRef(false)
 
   const detachVapi = useCallback(() => {
@@ -202,8 +202,10 @@ export function useVapiInterview() {
     }
   }, [])
 
+  // this initializes a Vapi call session with the given character, resume, and job description
+  // we build the assistant config and starting the Vapi SDK with a timeout and event listeners
   const startCall = useCallback(
-    async (character: InterviewCharacter, resumeText: string) => {
+    async (character: InterviewCharacter, resumeText: string, jobDescription: string = '') => {
       setError(null)
       setReport(null)
       setMuted(false)
@@ -302,7 +304,7 @@ export function useVapiInterview() {
           return
         }
 
-        const assistant = buildAssistantConfig(character, resumeText)
+        const assistant = buildAssistantConfig(character, resumeText, jobDescription)
 
         let timeoutId: ReturnType<typeof setTimeout> | undefined
         const timeoutPromise = new Promise<never>((_, reject) => {

@@ -4,6 +4,7 @@ import _VapiSDK from '@vapi-ai/web'
 // CJS exports object { __esModule: true, default: VapiClass } instead of the class itself.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Vapi = ((_VapiSDK as any).default ?? _VapiSDK) as typeof _VapiSDK
+const jobDescriptionRef = useRef<string>('')
 import { buildAssistantConfig } from '../lib/buildAssistantConfig'
 import type { InterviewCharacter } from '../lib/buildSystemPrompt'
 import { scoreInterviewFeedback } from '../lib/reportScoring'
@@ -117,7 +118,7 @@ export function useVapiInterview() {
     let topImprovements: string[] = []
     let sentiment: PostInterviewReport['sentiment'] = 'neutral'
     try {
-      const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary)
+      const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary, jobDescriptionRef.current, characterRef.current)
       clarityScore = feedback.clarityScore
       confidenceRating = feedback.confidenceRating
       topImprovements = feedback.topImprovements
@@ -212,6 +213,7 @@ export function useVapiInterview() {
       setConnectingStage('')
       finalizedRef.current = false
       characterRef.current = character
+      jobDescriptionRef.current = jobDescription
       transcriptChunks.current = []
       conversationRef.current = []
 

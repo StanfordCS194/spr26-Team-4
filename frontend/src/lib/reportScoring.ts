@@ -26,21 +26,22 @@ function isReportFeedback(value: unknown): value is ReportFeedback {
 export async function scoreInterviewFeedback(
   userText: string,
   transcriptSummary: string,
-): Promise<ReportFeedback> {
-  const response = await fetch(apiUrl('/api/report/score'), {
+  jobDescription: string = '',
+  agentType: string = '',
+  ): Promise<ReportFeedback> {
+    const response = await fetch(apiUrl('/api/report/score'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userText, transcriptSummary }),
-  })
+    body: JSON.stringify({ userText, transcriptSummary, jobDescription, agentType }),
+    })
 
-  if (!response.ok) {
-    throw new Error(await getApiError(response, 'Could not score interview report.'))
-  }
+    if (!response.ok) {
+      throw new Error(await getApiError(response, 'Could not score interview report.'))
+    }
 
-  const payload = (await response.json()) as unknown
-  if (!isReportFeedback(payload)) {
-    throw new Error('Backend returned an invalid report score response.')
-  }
-
-  return payload
+    const payload = (await response.json()) as unknown
+    if (!isReportFeedback(payload)) {
+      throw new Error('Backend returned an invalid report score response.')
+    }
+    return payload
 }

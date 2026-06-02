@@ -46,5 +46,6 @@ export function buildAssistantConfig(
     firstMessageMode: 'assistant-speaks-first',
     maxDurationSeconds: 600,
     clientMessages: ['transcript', 'conversation-update'] as unknown as CreateAssistantDTO['clientMessages'],
+    endCallPhrases: ['Best of luck', 'Good luck with your', 'Best of luck with your'] //added phrases that indicate the call should automatically be ended
   }
 }

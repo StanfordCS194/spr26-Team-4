@@ -116,5 +116,7 @@ Speaking style:
 - Let the candidate do most of the talking.
 
 End:
-- After the third answer and micro-feedback, close the interview warmly in 1-2 short sentences.`
+- After the third answer and micro-feedback, close the interview warmly in 1-2 short sentences.
+- After the third answer and micro-feedback, close the interview warmly in 1-2 short sentences ending with "Best of luck with your upcoming interviews."
+- This exact phrase will end the call automatically.`
 }

@@ -30,13 +30,13 @@ function isReportFeedback(value: unknown): value is ReportFeedback {
 export async function scoreInterviewFeedback(
   userText: string,
   transcriptSummary: string,
+  jobDescription = '',
+  agentType = '',
 ): Promise<ReportFeedback> {
-  // The scoring API owns prompt/model details; the frontend only sends the
-  // minimum interview context needed to render a reviewable report.
   const response = await fetch(apiUrl('/api/report/score'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userText, transcriptSummary }),
+    body: JSON.stringify({ userText, transcriptSummary, jobDescription, agentType }),
   })
 
   if (!response.ok) {
@@ -47,6 +47,5 @@ export async function scoreInterviewFeedback(
   if (!isReportFeedback(payload)) {
     throw new Error('Backend returned an invalid report score response.')
   }
-
   return payload
 }

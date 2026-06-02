@@ -4,11 +4,15 @@ from pydantic import BaseModel
 
 
 ReportSentiment = Literal["positive", "neutral", "negative"]
+AgentType = Literal["tech", "finance", "consulting", "other"]
+# modified score report request to include agentType
 
 
 class ScoreReportRequest(BaseModel):
     userText: str = ""
     transcriptSummary: str = ""
+    jobDescription: str = ""
+    agentType: str = ""
 
 
 class ReportFeedback(BaseModel):
@@ -17,3 +21,12 @@ class ReportFeedback(BaseModel):
     topImprovements: list[str]
     sentiment: ReportSentiment
     sentimentSummary: str
+
+
+class ClassifyJobRequest(BaseModel):
+    jobDescription: str
+
+
+class ClassifyJobResponse(BaseModel):
+    agentType: AgentType
+    reasoning: str

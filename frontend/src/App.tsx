@@ -20,6 +20,7 @@ import {
   type InterviewKpiMetrics,
   type InterviewSessionRecord,
 } from './lib/sessionPersistence'
+import { classifyJobDescription, type ClassifyJobResult } from './lib/classifyJob'
 import { loadOnboardingResult, type OnboardingResult } from './lib/onboarding'
 import { GLASS_CARD_CLASS, PAGE_CLASS, SHELL_CLASS } from './lib/interviewUi'
 import { InCallView } from './views/InCallView'
@@ -50,12 +51,14 @@ export default function App() {
     loadOnboardingResult(),
   )
   const [character, setCharacter] = useState<InterviewCharacter>(
-    () => onboardingResult?.assignedCharacter ?? 'tech-lead',
+    () => onboardingResult?.assignedCharacter ?? 'tech',
   )
 
   // Cross-view setup state
   const [resumeText, setResumeText] = useState('')
   const [jobDescriptionText, setJobDescriptionText] = useState('')
+  const [classifying, setClassifying] = useState(false)
+  const [recommendedAgent, setRecommendedAgent] = useState<ClassifyJobResult | null>(null)
   const [resumeFileName, setResumeFileName] = useState<string | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsing, setParsing] = useState(false)
@@ -161,6 +164,22 @@ export default function App() {
   const beginPractice = useCallback(() => {
     void startCall(character, resumeText, jobDescriptionText)
   }, [character, resumeText, jobDescriptionText, startCall])
+
+  // POSTs the current job description to the backend classify endpoint and updates the selected character
+  const handleRecommendInterviewer = useCallback(() => {
+    if (!jobDescriptionText.trim()) return
+
+    setClassifying(true)
+    void classifyJobDescription(jobDescriptionText)
+      .then((data) => {
+        setRecommendedAgent(data)
+        setCharacter(data.agentType)
+      })
+      .catch((e) => {
+        setParseError(e instanceof Error ? e.message : 'Could not classify job description.')
+      })
+      .finally(() => setClassifying(false))
+  }, [jobDescriptionText])
 
   const handleFeedbackUsefulnessRating = useCallback(
     (sessionId: string, rating: number) => {
@@ -323,8 +342,11 @@ export default function App() {
             resumeText={resumeText}
             jobDescriptionText={jobDescriptionText}
             fileInputRef={fileInputRef}
+            classifying={classifying}
+            recommendedAgent={recommendedAgent}
             onCharacterChange={setCharacter}
             onJobDescriptionChange={setJobDescriptionText}
+            onRecommendInterviewer={handleRecommendInterviewer}
             onPickFile={(file) => void onPickFile(file)}
           />
         )}

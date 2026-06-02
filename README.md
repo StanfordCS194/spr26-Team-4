@@ -7,7 +7,10 @@ Source Control with Git Assignment: Boom, Jerry, Nick, Danny Argudo
 
 ## StarReady
 
-The interview prep app is split into two root-level workspaces:
+![starready_banner](images/StarReady_Banner.png)
+
+
+Our interview prep app is split into two root-level workspaces:
 
 - `frontend/` — React/Vite UI and browser Vapi call flow.
 - `backend/` — FastAPI/Python API for resume parsing and report scoring.

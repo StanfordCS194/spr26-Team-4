@@ -72,7 +72,8 @@ export function useVapiInterview() {
   const conversationRef = useRef<{ role?: string; content?: string | null }[]>(
     [],
   )
-  const characterRef = useRef<InterviewCharacter>('tech-lead')
+  const characterRef = useRef<InterviewCharacter>('tech')
+  const jobDescriptionRef = useRef('')
   const finalizedRef = useRef(false)
   // KPI tracking: links one start attempt to its eventual completion/failure.
   const currentAttemptId = useRef<string | null>(null)
@@ -125,7 +126,7 @@ export function useVapiInterview() {
     let sentiment: PostInterviewReport['sentiment'] = 'neutral'
     let sentimentSummary = ''
     try {
-      const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary)
+      const feedback = await scoreInterviewFeedback(userSpeech, transcriptSummary, jobDescriptionRef.current, characterRef.current)
       clarityScore = feedback.clarityScore
       confidenceRating = feedback.confidenceRating
       topImprovements = feedback.topImprovements
@@ -221,6 +222,7 @@ export function useVapiInterview() {
       finalizedRef.current = false
       currentAttemptId.current = null
       characterRef.current = character
+      jobDescriptionRef.current = jobDescriptionText
       transcriptChunks.current = []
       conversationRef.current = []
 

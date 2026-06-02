@@ -23,6 +23,8 @@ export type OnboardingResult = {
 
 const LOCAL_KEY = 'interview_app_onboarding_v1'
 
+const VALID_CHARACTERS: InterviewCharacter[] = ['tech', 'finance', 'consulting', 'other']
+
 export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
   {
     id: 'focus',
@@ -32,13 +34,19 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
         id: 'technical-depth',
         label: 'Explaining technical decisions clearly',
         helper: 'Architecture, tradeoffs, debugging, and system design stories.',
-        character: 'tech-lead',
+        character: 'tech',
       },
       {
-        id: 'impact',
-        label: 'Communicating impact and leadership',
-        helper: 'Scope, outcomes, collaboration, and stakeholder alignment.',
-        character: 'hiring-manager',
+        id: 'analytics',
+        label: 'Quantitative and analytical storytelling',
+        helper: 'Deals, models, metrics, and precision under pressure.',
+        character: 'finance',
+      },
+      {
+        id: 'structured-thinking',
+        label: 'Structured problem-solving and client impact',
+        helper: 'Hypothesis-driven answers and crisp recommendations.',
+        character: 'consulting',
       },
     ],
   },
@@ -48,15 +56,21 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     options: [
       {
         id: 'engineering-round',
-        label: 'A technical or engineering leadership round',
+        label: 'A technical or product role',
         helper: 'You expect follow-ups on implementation choices and technical judgment.',
-        character: 'tech-lead',
+        character: 'tech',
       },
       {
-        id: 'behavioral-round',
-        label: 'A behavioral or team-fit round',
-        helper: 'You expect follow-ups on ownership, teamwork, and business results.',
-        character: 'hiring-manager',
+        id: 'finance-round',
+        label: 'A finance or investing role',
+        helper: 'You expect follow-ups on analysis, deals, and stakeholder management.',
+        character: 'finance',
+      },
+      {
+        id: 'consulting-round',
+        label: 'A consulting or strategy role',
+        helper: 'You expect follow-ups on structure, impact, and communication.',
+        character: 'consulting',
       },
     ],
   },
@@ -66,15 +80,21 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     options: [
       {
         id: 'specificity',
-        label: 'Push me for specifics and better technical examples',
+        label: 'Push me for specifics and better examples',
         helper: 'Good for tightening vague project explanations.',
-        character: 'tech-lead',
+        character: 'tech',
+      },
+      {
+        id: 'precision',
+        label: 'Help me sound precise and numbers-aware',
+        helper: 'Good for finance-style rigor and clarity.',
+        character: 'finance',
       },
       {
         id: 'storytelling',
-        label: 'Help me make my stories sound concise and compelling',
-        helper: 'Good for shaping answers around stakes, actions, and measurable outcomes.',
-        character: 'hiring-manager',
+        label: 'Help me make my stories concise and compelling',
+        helper: 'Good for shaping answers around stakes, actions, and outcomes.',
+        character: 'other',
       },
     ],
   },
@@ -85,7 +105,7 @@ export function loadOnboardingResult(): OnboardingResult | null {
     const raw = localStorage.getItem(LOCAL_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as OnboardingResult
-    if (parsed?.assignedCharacter !== 'tech-lead' && parsed?.assignedCharacter !== 'hiring-manager') {
+    if (!VALID_CHARACTERS.includes(parsed?.assignedCharacter)) {
       return null
     }
     return parsed
@@ -112,8 +132,11 @@ export function assignOnboardingCharacter(answers: OnboardingAnswers): Interview
       if (selected) counts[selected.character] += 1
       return counts
     },
-    { 'tech-lead': 0, 'hiring-manager': 0 } satisfies Record<InterviewCharacter, number>,
+    { tech: 0, finance: 0, consulting: 0, other: 0 } satisfies Record<InterviewCharacter, number>,
   )
 
-  return votes['tech-lead'] > votes['hiring-manager'] ? 'tech-lead' : 'hiring-manager'
+  const ranked = (Object.entries(votes) as [InterviewCharacter, number][]).sort(
+    (a, b) => b[1] - a[1],
+  )
+  return ranked[0]?.[1] ? ranked[0][0] : 'other'
 }

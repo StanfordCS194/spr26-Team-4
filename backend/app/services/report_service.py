@@ -3,7 +3,7 @@ import math
 import re
 from typing import Any
 
-from app.models.report import ReportFeedback, ReportSentiment, ScoreReportRequest
+from app.models.report import ClassifyJobResponse, ReportFeedback, ReportSentiment, ScoreReportRequest
 from app.services.gemini import generate_gemini_text
 
 
@@ -12,7 +12,7 @@ def _clamp_score(value: Any) -> int | None:
         return None
     if not math.isfinite(value):
         return None
-    return max(1, min(10, round(value)))
+    return max(1, min(10, round(value))
 
 
 def _normalize_sentiment(value: Any) -> ReportSentiment | None:
@@ -59,7 +59,17 @@ def _normalize_improvements(value: Any) -> list[str] | None:
     return cleaned[:3]
 
 
+# this function builds a Gemini scoring prompt that includes job description and agent type context; it's the eprompt we feed for scoring
+# the returned improvements are tailored to the specific role this time, instead of being generic
 async def score_interview_feedback(payload: ScoreReportRequest) -> ReportFeedback:
+    job_ctx = ""
+    if payload.jobDescription.strip():
+        job_ctx = f"\nThe candidate was interviewing for this role:\n{payload.jobDescription.strip()[:2000]}\n"
+
+    agent_ctx = ""
+    if payload.agentType.strip():
+        agent_ctx = f"\nInterview type: {payload.agentType} domain.\n"
+
     prompt = f"""You are scoring a candidate's behavioral interview transcript.
 Return JSON only with this schema:
 {{
@@ -75,8 +85,8 @@ Scoring guidance:
 - Confidence: ownership language, certainty, assertiveness without arrogance.
 - Sentiment: overall tone of the candidate's interview answers (not the interviewer's mood).
 - sentimentSummary: one actionable sentence about how the candidate came across in the interview (e.g. energy, initiative, specificity). Address the candidate as "you".
-- Improvements: actionable, specific, and tailored to this transcript.
-
+- Improvements: actionable, specific, and tailored to this transcript and role.
+{job_ctx}{agent_ctx}
 Candidate transcript:
 {payload.transcriptSummary or payload.userText or "(empty transcript)"}"""
 
@@ -84,7 +94,7 @@ Candidate transcript:
 
     parsed = _parse_model_json(text)
     if parsed is None:
-        raise ValueError("Ollama returned invalid scoring JSON.")
+        raise ValueError("Gemini returned invalid scoring JSON.")
 
     clarity_score = _clamp_score(parsed.get("clarityScore"))
     confidence_rating = _clamp_score(parsed.get("confidenceRating"))
@@ -99,7 +109,7 @@ Candidate transcript:
         or sentiment_summary is None
         or top_improvements is None
     ):
-        raise ValueError("Ollama scoring response is missing required fields.")
+        raise ValueError("Gemini scoring response is missing required fields.")
 
     return ReportFeedback(
         clarityScore=clarity_score,
@@ -107,4 +117,35 @@ Candidate transcript:
         sentiment=sentiment,
         sentimentSummary=sentiment_summary,
         topImprovements=top_improvements,
+    )
+
+
+# then we send the job description to gemini with the classification prompt
+# the function also parses the JSON response to return one of the four agent types and defaults to "other" in case Gemini's output is not parseable
+async def classify_job_description(job_description: str) -> ClassifyJobResponse:
+    prompt = f"""You are classifying a job description into one of four interview categories.
+Return JSON only with this schema:
+{{
+"agentType": "tech" | "finance" | "consulting" | "other",
+"reasoning": string (one short sentence)
+}}
+
+Categories:
+- "tech": software engineering, product, data science, ML, IT, hardware
+- "finance": investment banking, asset management, private equity, accounting, fintech
+- "consulting": management consulting, strategy, operations consulting, advisory
+- "other": anything that doesn't clearly fit the above
+
+Job description:
+{job_description.strip()[:3000]}"""
+
+    text = await generate_gemini_text(prompt)
+
+    parsed = _parse_model_json(text)
+    if parsed is None or parsed.get("agentType") not in ("tech", "finance", "consulting", "other"):
+        return ClassifyJobResponse(agentType="other", reasoning="Could not classify; defaulting to general interviewer.")
+
+    return ClassifyJobResponse(
+        agentType=parsed["agentType"],
+        reasoning=parsed.get("reasoning", ""),
     )

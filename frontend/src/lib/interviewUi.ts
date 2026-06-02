@@ -8,22 +8,36 @@ export const CHARACTERS: {
   blurb: string
 }[] = [
   {
-    id: 'tech-lead',
-    label: 'Tech Lead',
+    id: 'tech',
+    label: 'Tech',
     persona: 'Marissa',
-    blurb: 'Depth on architecture, tradeoffs, and collaboration.',
+    blurb: 'Software, ML, and product roles. Depth on systems, tradeoffs, and collaboration.',
   },
   {
-    id: 'hiring-manager',
-    label: 'Hiring Manager',
-    persona: 'Paul',
-    blurb: 'Scope, outcomes, and how you work with stakeholders.',
+    id: 'finance',
+    label: 'Finance',
+    persona: 'David',
+    blurb: 'Banking, investing, and fintech. Focused on analytics, deals, and precision.',
+  },
+  {
+    id: 'consulting',
+    label: 'Consulting',
+    persona: 'Sophie',
+    blurb: 'Strategy and management consulting. Structured thinking and client impact.',
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    persona: 'Alex',
+    blurb: 'General behavioral interview. Works for any role not covered above.',
   },
 ]
 
 export const CHARACTER_LABELS: Record<string, string> = {
-  'tech-lead': 'Tech Lead',
-  'hiring-manager': 'Hiring Manager',
+  tech: 'Tech',
+  finance: 'Finance',
+  consulting: 'Consulting',
+  other: 'Other',
 }
 
 export const PAGE_CLASS =

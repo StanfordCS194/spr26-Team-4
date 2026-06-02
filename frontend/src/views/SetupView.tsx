@@ -1,11 +1,13 @@
 // Setup view: lets the applicant choose an interviewer persona and attach a resume.
 
 import { useState, type RefObject } from 'react'
-import { Briefcase, ChevronDown, ChevronUp, Target, Upload, User } from 'lucide-react'
+import { Briefcase, ChevronDown, ChevronUp, Sparkles, Target, Upload, User } from 'lucide-react'
 import type { InterviewPhase } from '../hooks/useVapiInterview'
 import type { InterviewCharacter } from '../lib/buildSystemPrompt'
+import type { ClassifyJobResult } from '../lib/classifyJob'
 import {
   CHARACTERS,
+  CHARACTER_LABELS,
   GLASS_CARD_CLASS,
   SECONDARY_BUTTON_CLASS,
 } from '../lib/interviewUi'
@@ -18,8 +20,11 @@ type SetupViewProps = {
   resumeText: string
   jobDescriptionText: string
   fileInputRef: RefObject<HTMLInputElement | null>
+  classifying: boolean
+  recommendedAgent: ClassifyJobResult | null
   onCharacterChange: (character: InterviewCharacter) => void
   onJobDescriptionChange: (text: string) => void
+  onRecommendInterviewer: () => void
   onPickFile: (file: File | null) => void
 }
 
@@ -31,8 +36,11 @@ export function SetupView({
   resumeText,
   jobDescriptionText,
   fileInputRef,
+  classifying,
+  recommendedAgent,
   onCharacterChange,
   onJobDescriptionChange,
+  onRecommendInterviewer,
   onPickFile,
 }: SetupViewProps) {
   const [jobDescriptionOpen, setJobDescriptionOpen] = useState(false)
@@ -43,7 +51,7 @@ export function SetupView({
       <div className={`${GLASS_CARD_CLASS} xl:col-span-3`}>
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
           <User className="h-4 w-4" aria-hidden />
-          Character
+          Interviewer
         </h2>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -148,6 +156,27 @@ export function SetupView({
                 rows={6}
                 className="w-full resize-y rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm leading-relaxed text-slate-200 placeholder:text-slate-500 focus:border-sky-300/40 focus:outline-none focus:ring-1 focus:ring-sky-300/30 disabled:opacity-60"
               />
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={!jobDescriptionText.trim() || classifying || inputsLocked}
+                  onClick={onRecommendInterviewer}
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-2 text-xs font-medium text-violet-100 transition hover:bg-violet-500/25 disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  {classifying ? 'Analyzing…' : 'Recommend interviewer'}
+                </button>
+                {recommendedAgent && (
+                  <p className="text-xs text-slate-400">
+                    Recommended:{' '}
+                    <span className="text-sky-300">
+                      {CHARACTER_LABELS[recommendedAgent.agentType]}
+                    </span>
+                    {' — '}
+                    {recommendedAgent.reasoning}
+                  </p>
+                )}
+              </div>
               {jobDescriptionText.trim() ? (
                 <p className="mt-2 text-xs text-emerald-300">
                   {jobDescriptionText.trim().length.toLocaleString()} chars will be added to the

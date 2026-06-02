@@ -1,10 +1,14 @@
 node_modules
+node_modules/
 dist
+dist/
 dist-ssr
+.vite/
 
 # Secrets and env files (keep templates tracked if you add them)
 .env*
 !.env.example
+.env
 
 *.local
 

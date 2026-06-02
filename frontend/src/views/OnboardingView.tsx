@@ -79,7 +79,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
 
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-400 transition-all duration-300 ease-out"
+                className="h-full rounded-full bg-sky-500 transition-all duration-300 ease-out"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -136,7 +136,7 @@ export function OnboardingView({ onComplete }: OnboardingViewProps) {
               type="button"
               disabled={!selectedOptionId}
               onClick={continueOnboarding}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-900/35 transition hover:from-sky-400 hover:via-indigo-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-900/30 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isLastQuestion
                 ? `Start with ${CHARACTER_LABELS[assignOnboardingCharacter(answers)]}`

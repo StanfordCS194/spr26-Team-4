@@ -23,6 +23,7 @@ import {
 import { classifyJobDescription, type ClassifyJobResult } from './lib/classifyJob'
 import { loadOnboardingResult, type OnboardingResult } from './lib/onboarding'
 import { GLASS_CARD_CLASS, PAGE_CLASS, SHELL_CLASS } from './lib/interviewUi'
+import { ImmersiveCallView } from './views/ImmersiveCallView'
 import { InCallView } from './views/InCallView'
 import { OnboardingView } from './views/OnboardingView'
 import { PastSessionDetailView } from './views/PastSessionDetailView'
@@ -71,6 +72,7 @@ export default function App() {
   const [savedSessions, setSavedSessions] = useState<InterviewSessionRecord[]>(() => loadSessions())
   const [kpiMetrics, setKpiMetrics] = useState<InterviewKpiMetrics>(() => loadKpiMetrics())
   const [sortBy, setSortBy] = useState<SortBy>('date')
+  const [immersiveMode, setImmersiveMode] = useState(false)
 
   // Live interview
   const {
@@ -93,6 +95,10 @@ export default function App() {
     document.documentElement.classList.toggle('theme-dark', theme === 'dark')
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    if (phase !== 'in-call') setImmersiveMode(false)
+  }, [phase])
 
   useEffect(() => {
     if (phase !== 'setup') return
@@ -261,6 +267,20 @@ export default function App() {
     )
   }
 
+  // Immersive in-call replaces the dashboard shell entirely.
+  if (phase === 'in-call' && immersiveMode) {
+    return (
+      <ImmersiveCallView
+        muted={muted}
+        aiSpeaking={aiSpeaking}
+        volume={volume}
+        onToggleMute={toggleMute}
+        onEndCall={endCall}
+        onExitImmersive={() => setImmersiveMode(false)}
+      />
+    )
+  }
+
   // Render interview lifecycle and voice agent last.
   return (
     <div className={PAGE_CLASS}>
@@ -381,6 +401,7 @@ export default function App() {
             volume={volume}
             onToggleMute={toggleMute}
             onEndCall={endCall}
+            onEnterImmersive={() => setImmersiveMode(true)}
           />
         )}
 

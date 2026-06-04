@@ -1,6 +1,6 @@
 // In-call view: shows the active voice orb and microphone/call controls.
 
-import { Mic, MicOff, PhoneOff } from 'lucide-react'
+import { Maximize2, Mic, MicOff, PhoneOff } from 'lucide-react'
 import { VoiceOrb } from '../components/VoiceOrb'
 import { GLASS_CARD_CLASS, SECONDARY_BUTTON_CLASS } from '../lib/interviewUi'
 
@@ -10,6 +10,7 @@ type InCallViewProps = {
   volume: number
   onToggleMute: () => void
   onEndCall: () => void
+  onEnterImmersive: () => void
 }
 
 export function InCallView({
@@ -18,10 +19,21 @@ export function InCallView({
   volume,
   onToggleMute,
   onEndCall,
+  onEnterImmersive,
 }: InCallViewProps) {
   return (
     <section className={`${GLASS_CARD_CLASS} text-center`}>
-      <p className="mb-6 text-sm text-slate-400">Session in progress</p>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-400">Session in progress</p>
+        <button
+          type="button"
+          onClick={onEnterImmersive}
+          className={`${SECONDARY_BUTTON_CLASS} shrink-0`}
+        >
+          <Maximize2 className="h-4 w-4" aria-hidden />
+          Immersive mode
+        </button>
+      </div>
 
       <div className="mb-8 flex justify-center">
         {/* VoiceOrb is purely visual; call state and audio events stay in useVapiInterview. */}

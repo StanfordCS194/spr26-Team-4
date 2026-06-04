@@ -1,6 +1,19 @@
+type VoiceOrbSize = 'md' | 'lg'
+
 type VoiceOrbProps = {
   active: boolean
   volume: number
+  size?: VoiceOrbSize
+}
+
+const CONTAINER_SIZE: Record<VoiceOrbSize, string> = {
+  md: 'h-48 w-48',
+  lg: 'h-72 w-72',
+}
+
+const CORE_SIZE: Record<VoiceOrbSize, string> = {
+  md: 'h-32 w-32',
+  lg: 'h-48 w-48',
 }
 
 const PARTICLES = [
@@ -16,13 +29,13 @@ const PARTICLES = [
 
 const BAR_HEIGHTS = [0.45, 0.7, 0.95, 0.62, 0.82, 0.52, 0.72]
 
-export function VoiceOrb({ active, volume }: VoiceOrbProps) {
+export function VoiceOrb({ active, volume, size = 'md' }: VoiceOrbProps) {
   const energy = active ? Math.min(1, Math.max(0.18, volume)) : 0
   const scale = 1 + Math.min(0.18, energy * 0.28)
 
   return (
     <div
-      className="relative flex h-48 w-48 items-center justify-center overflow-visible"
+      className={`relative flex ${CONTAINER_SIZE[size]} items-center justify-center overflow-visible`}
       aria-label={active ? 'Interviewer speaking' : 'Interviewer listening'}
       role="img"
     >
@@ -82,7 +95,7 @@ export function VoiceOrb({ active, volume }: VoiceOrbProps) {
         aria-hidden
       />
       <div
-        className={`relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full ring-1 transition-all duration-300 ease-out ${
+        className={`relative flex ${CORE_SIZE[size]} items-center justify-center overflow-hidden rounded-full ring-1 transition-all duration-300 ease-out ${
           active
             ? 'bg-[radial-gradient(circle_at_35%_30%,_rgba(255,255,255,0.85),_rgba(103,232,249,0.5)_22%,_rgba(168,85,247,0.75)_48%,_rgba(236,72,153,0.65)_72%,_rgba(49,46,129,0.95)_100%)] shadow-2xl shadow-fuchsia-500/35 ring-white/30'
             : 'bg-[radial-gradient(circle_at_35%_30%,_rgba(186,230,253,0.55),_rgba(14,116,144,0.34)_42%,_rgba(15,23,42,0.96)_100%)] shadow-md shadow-sky-950/40 ring-sky-200/10'

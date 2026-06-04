@@ -12,7 +12,7 @@ def _clamp_score(value: Any) -> int | None:
         return None
     if not math.isfinite(value):
         return None
-    return max(1, min(10, round(value))
+    return max(1, min(10, round(value)))
 
 
 def _normalize_sentiment(value: Any) -> ReportSentiment | None:

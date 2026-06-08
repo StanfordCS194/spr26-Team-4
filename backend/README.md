@@ -14,7 +14,7 @@ FastAPI backend for backend-flow work that should not run in the browser.
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../requirements.txt
 cp .env.example .env
 python -m uvicorn app.main:app --reload --port 3001
 ```

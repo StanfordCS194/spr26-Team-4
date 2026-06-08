@@ -10,7 +10,7 @@ React/Vite frontend for the behavioral interview prep app. It renders the UI, ow
    cd ../backend
    python3.12 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r ../requirements.txt
    cp .env.example .env
    ollama pull llama3.2:3b
    python -m uvicorn app.main:app --reload --port 3001

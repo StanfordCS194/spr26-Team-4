@@ -8,6 +8,7 @@ Responsible for loading all app states and UI:
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { History, Moon, Sun } from 'lucide-react'
+import starReadyLogo from '../images/StarReady_Logo_transparent.svg'
 import { useVapiInterview } from './hooks/useVapiInterview'
 import type { InterviewCharacter } from './lib/buildSystemPrompt'
 import { parseResumeFile } from './lib/parseResumeFile'
@@ -290,7 +291,7 @@ export default function App() {
         <header className="mb-10 text-center sm:mb-12">
           <div className="flex items-center justify-center gap-3">
             <img
-              src="/StarReady_Logo_transparent.svg"
+              src={starReadyLogo}
               alt=""
               className="app-logo h-12 w-12 shrink-0 sm:h-14 sm:w-14"
             />

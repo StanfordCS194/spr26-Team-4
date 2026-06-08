@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ringGradient" x1="90" y1="80" x2="410" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7C5CFF"/>
+      <stop offset="0.5" stop-color="#4B9EFF"/>
+      <stop offset="1" stop-color="#30D5C8"/>
+    </linearGradient>
+    <linearGradient id="starGradient" x1="250" y1="135" x2="250" y2="355" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF6B7"/>
+      <stop offset="0.55" stop-color="#FFD166"/>
+      <stop offset="1" stop-color="#FF9F1C"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(250 250) rotate(90) scale(120)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="70" y="70" width="360" height="360" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#1F2A5A" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <circle cx="250" cy="250" r="152" stroke="url(#ringGradient)" stroke-width="20"/>
+    <circle cx="250" cy="250" r="112" fill="url(#coreGlow)"/>
+
+    <path d="M250 138L276.9 204.8L349 210.6L293.8 258.4L311.4 328.2L250 290.4L188.6 328.2L206.2 258.4L151 210.6L223.1 204.8L250 138Z" fill="url(#starGradient)"/>
+
+    <circle cx="352" cy="175" r="14" fill="#FFFFFF" fill-opacity="0.9"/>
+    <circle cx="140" cy="300" r="8" fill="#FFFFFF" fill-opacity="0.72"/>
+    <circle cx="326" cy="340" r="6" fill="#FFFFFF" fill-opacity="0.68"/>
+  </g>
+
+  <path d="M130 418C184 394 316 394 370 418" stroke="url(#ringGradient)" stroke-width="8" stroke-linecap="round" stroke-opacity="0.85"/>
+</svg>

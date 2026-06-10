@@ -114,10 +114,10 @@ export function useVapiInterview() {
     const conv = conversationRef.current
     const chunks = transcriptChunks.current
 
+    // summarizeFromConversation drops system/tool messages, so it can come back
+    // empty even when conv is non-empty — fall back to raw transcript chunks.
     const transcriptSummary =
-      conv.length > 0
-        ? summarizeFromConversation(conv)
-        : summarizeFromTranscriptChunks(chunks)
+      summarizeFromConversation(conv) || summarizeFromTranscriptChunks(chunks)
 
     const userSpeech = extractUserSpeech(chunks)
     let clarityScore = 0

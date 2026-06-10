@@ -1,9 +1,33 @@
-type OpenAiFmt = { role?: string; content?: string | null }
+type OpenAiContent = string | null | undefined | { type?: string; text?: string }[]
+type OpenAiFmt = { role?: string; content?: OpenAiContent }
+
+// Vapi's conversation-update messages include the system prompt (resume + job
+// description) and tool calls; only real dialogue belongs in the transcript.
+const DIALOGUE_ROLES = new Set(['user', 'assistant', 'bot'])
+
+// Anthropic models can return content as an array of blocks instead of a string.
+function contentToText(content: OpenAiContent): string {
+  if (typeof content === 'string') return content.trim()
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+  }
+  return ''
+}
 
 export function summarizeFromConversation(messages: OpenAiFmt[]): string {
-  const lines = messages
-    .filter((m) => m.content && String(m.content).trim())
-    .map((m) => `${(m.role || 'unknown').toUpperCase()}: ${String(m.content).trim()}`)
+  const lines: string[] = []
+  for (const m of messages) {
+    const role = (m.role || '').toLowerCase()
+    if (!DIALOGUE_ROLES.has(role)) continue
+    const text = contentToText(m.content)
+    if (!text) continue
+    const label = role === 'bot' ? 'ASSISTANT' : role.toUpperCase()
+    lines.push(`${label}: ${text}`)
+  }
   return lines.join('\n').slice(0, 8000)
 }
 

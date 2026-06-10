@@ -8,6 +8,7 @@
     "dev:backend": "cd backend && . .venv/bin/activate && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 3001",
     "build": "npm --prefix frontend run build && python3.12 -m compileall backend/app",
     "lint": "npm --prefix frontend run lint",
+    "test:backend": "cd backend && . .venv/bin/activate && python -m pytest",
     "typecheck:backend": "python3.12 -m compileall backend/app"
   },
   "repository": {

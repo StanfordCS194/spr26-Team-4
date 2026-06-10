@@ -64,15 +64,26 @@ class TestReportScoreRoute:
         assert body["sentiment"] == "neutral"
         assert body["topImprovements"] == ["a", "b", "c"]
 
-    def test_llm_failure_returns_400(self, client, monkeypatch):
+    def test_llm_failure_returns_502_without_leaking_details(self, client, monkeypatch):
         async def failing_llm(prompt: str) -> str:
-            raise RuntimeError("All LLM providers failed.")
+            raise RuntimeError("Ollama is not running at http://localhost:11434.")
 
         monkeypatch.setattr(report_service, "generate_text_with_fallback", failing_llm)
 
         response = client.post("/api/report/score", json={"userText": "hello"})
-        assert response.status_code == 400
-        assert "All LLM providers failed" in response.json()["detail"]
+        assert response.status_code == 502
+        detail = response.json()["detail"]
+        assert "temporarily unavailable" in detail
+        assert "localhost" not in detail
+
+    def test_invalid_llm_json_returns_502(self, client, monkeypatch):
+        async def garbage_llm(prompt: str) -> str:
+            return "not json"
+
+        monkeypatch.setattr(report_service, "generate_text_with_fallback", garbage_llm)
+
+        response = client.post("/api/report/score", json={"userText": "hello"})
+        assert response.status_code == 502
 
 
 class TestReportClassifyRoute:
@@ -98,3 +109,15 @@ class TestReportClassifyRoute:
         response = client.post("/api/report/classify", json={"jobDescription": "???"})
         assert response.status_code == 200
         assert response.json()["agentType"] == "other"
+
+    def test_classify_degrades_gracefully_when_llm_unreachable(self, client, monkeypatch):
+        async def failing_llm(prompt: str) -> str:
+            raise RuntimeError("All LLM providers failed.")
+
+        monkeypatch.setattr(report_service, "generate_text_with_fallback", failing_llm)
+
+        response = client.post("/api/report/classify", json={"jobDescription": "SWE role"})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["agentType"] == "other"
+        assert "unavailable" in body["reasoning"]

@@ -18,6 +18,16 @@ export type InterviewSessionRecord = {
 const LOCAL_KEY = 'interview_app_sessions_v1'
 const ATTEMPTS_LOCAL_KEY = 'interview_app_attempts_v1'
 
+// Storage can be full or disabled (private browsing, strict settings); session
+// history is best-effort, so failed writes shouldn't break the report flow.
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch (error) {
+    console.warn('[StarReady] localStorage write skipped:', error)
+  }
+}
+
 function readLocal(): InterviewSessionRecord[] {
   try {
     const raw = localStorage.getItem(LOCAL_KEY)
@@ -35,13 +45,13 @@ export function loadSessions(): InterviewSessionRecord[] {
 
 export function deleteSession(id: string): void {
   const next = readLocal().filter((s) => s.id !== id)
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(next))
+  safeSetItem(LOCAL_KEY, JSON.stringify(next))
 }
 
 export function saveSessionLocal(record: InterviewSessionRecord) {
   // Keep recent history bounded so localStorage stays predictable for repeat testers.
   const next = [record, ...readLocal()].slice(0, 50)
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(next))
+  safeSetItem(LOCAL_KEY, JSON.stringify(next))
 }
 
 // KPI tracking: attempts let us measure starts vs completions without changing
@@ -80,7 +90,7 @@ function readAttemptsLocal(): InterviewAttemptRecord[] {
 
 function saveAttemptsLocal(records: InterviewAttemptRecord[]) {
   // Attempts are only used for aggregate KPIs, so older records can be safely trimmed.
-  localStorage.setItem(ATTEMPTS_LOCAL_KEY, JSON.stringify(records.slice(0, 100)))
+  safeSetItem(ATTEMPTS_LOCAL_KEY, JSON.stringify(records.slice(0, 100)))
 }
 
 function updateAttemptLocal(
@@ -135,7 +145,7 @@ export function updateSessionFeedbackUsefulnessLocal(
     updated = { ...session, feedbackUsefulnessRating }
     return updated
   })
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(next))
+  safeSetItem(LOCAL_KEY, JSON.stringify(next))
   return updated
 }
 

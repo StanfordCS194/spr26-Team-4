@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from app.models.report import ClassifyJobResponse, ReportFeedback, ReportSentiment, ScoreReportRequest
-from app.services.gemini import generate_gemini_text
+from app.services.llm_router import generate_text_with_fallback
 
 
 def _clamp_score(value: Any) -> int | None:
@@ -90,11 +90,11 @@ Scoring guidance:
 Candidate transcript:
 {payload.transcriptSummary or payload.userText or "(empty transcript)"}"""
 
-    text = await generate_gemini_text(prompt)
+    text = await generate_text_with_fallback(prompt)
 
     parsed = _parse_model_json(text)
     if parsed is None:
-        raise ValueError("Gemini returned invalid scoring JSON.")
+        raise ValueError("LLM returned invalid scoring JSON.")
 
     clarity_score = _clamp_score(parsed.get("clarityScore"))
     confidence_rating = _clamp_score(parsed.get("confidenceRating"))
@@ -109,7 +109,7 @@ Candidate transcript:
         or sentiment_summary is None
         or top_improvements is None
     ):
-        raise ValueError("Gemini scoring response is missing required fields.")
+        raise ValueError("LLM scoring response is missing required fields.")
 
     return ReportFeedback(
         clarityScore=clarity_score,
@@ -139,7 +139,7 @@ Categories:
 Job description:
 {job_description.strip()[:3000]}"""
 
-    text = await generate_gemini_text(prompt)
+    text = await generate_text_with_fallback(prompt)
 
     parsed = _parse_model_json(text)
     if parsed is None or parsed.get("agentType") not in ("tech", "finance", "consulting", "other"):

@@ -6,7 +6,7 @@ FastAPI backend for backend-flow work that should not run in the browser.
 
 - `POST /api/resume/parse` parses uploaded resume content and returns extracted text.
 - `POST /api/report/score` scores the completed interview transcript.
-- Report scoring uses a local Ollama model. No external AI API key is required.
+- Report scoring tries LiteLLM first, then falls back to Gemini, then local Ollama.
 - PDF resume parsing is local and works best with text-based PDFs, not scanned images.
 
 ## Run Locally
@@ -19,7 +19,7 @@ cp .env.example .env
 python -m uvicorn app.main:app --reload --port 3001
 ```
 
-Before scoring reports, install Ollama and pull the default model:
+For local fallback scoring, install Ollama and pull the default model:
 
 ```bash
 ollama pull llama3.2:3b
@@ -30,8 +30,11 @@ Optional `.env`:
 ```bash
 PORT=3001
 FRONTEND_ORIGIN=http://localhost:5173
+LITELLM_MODEL=openai/gpt-4o-mini
+LITELLM_API_KEY=
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2:3b
+GEMINI_API_KEY=
 ```
 
 ## Scripts

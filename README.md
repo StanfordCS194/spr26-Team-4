@@ -15,12 +15,19 @@ Our interview prep app is split into two root-level workspaces:
 - `frontend/` — React/Vite UI and browser Vapi call flow.
 - `backend/` — FastAPI/Python API for resume parsing and report scoring.
 
-Run locally in two terminals:
+Run locally in two terminals (after copying `.env.example` files in `backend/` and `frontend/`):
 
 ```bash
 npm run dev:backend
 npm run dev:frontend
 ```
 
-See `frontend/README.md` and `backend/README.md` for environment setup.
+Other commands:
+
+```bash
+npm run test:backend   # backend pytest suite
+npm run lint           # frontend ESLint
+```
+
+See `frontend/README.md` and `backend/README.md` for full setup.
 

@@ -25,17 +25,11 @@ For local fallback scoring, install Ollama and pull the default model:
 ollama pull llama3.2:3b
 ```
 
-Optional `.env`:
+Copy `backend/.env.example` to `backend/.env` and set at least one LLM provider:
 
-```bash
-PORT=3001
-FRONTEND_ORIGIN=http://localhost:5173
-LITELLM_MODEL=openai/gpt-4o-mini
-LITELLM_API_KEY=
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2:3b
-GEMINI_API_KEY=
-```
+- **LiteLLM (default):** `LITELLM_MODEL` + `OPENAI_API_KEY` (or another provider key matching the model)
+- **Gemini fallback:** `GEMINI_API_KEY`
+- **Ollama fallback:** run `ollama pull llama3.2:3b` locally
 
 ## Scripts
 

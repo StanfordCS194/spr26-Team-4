@@ -24,23 +24,18 @@ React/Vite frontend for the behavioral interview prep app. It renders the UI, ow
    npm install
    ```
 
-4. **Configure environment variables**  
-   Copy the example env file and add your Vapi public key:
+4. **Configure environment variables**
 
    ```bash
    cp .env.example .env
    ```
 
-   Edit `.env` and set:
+   `.env.example` already includes the team **`VITE_VAPI_PUBLIC_KEY`**. Override it in `.env` only if you use a different Vapi project.
 
-   - **`VITE_VAPI_PUBLIC_KEY`** — from the [Vapi dashboard](https://dashboard.vapi.ai/) (API keys → public key used for web clients).
-   - **`VITE_API_BASE_URL`** — optional production backend URL. Local dev uses Vite proxy to `http://localhost:3001`.
+   Optional:
 
-   Optional, for remote session logging:
-
-   - **`VITE_SUPABASE_URL`**
-   - **`VITE_SUPABASE_ANON_KEY`**  
-   If you use Supabase, create an `interview_sessions` table as described in `src/lib/sessionPersistence.ts`.
+   - **`VITE_API_BASE_URL`** — production backend URL. Local dev uses Vite proxy to `http://localhost:3001`.
+   - **`VITE_SUPABASE_URL`** / **`VITE_SUPABASE_ANON_KEY`** — remote session logging (see `src/lib/sessionPersistence.ts`).
 
 5. **Start the dev server**:
 
@@ -48,7 +43,7 @@ React/Vite frontend for the behavioral interview prep app. It renders the UI, ow
    npm run dev
    ```
 
-5. **Open the app** in your browser at the URL Vite prints (usually `http://localhost:5173`). Allow **microphone** access when the browser asks so the call can run.
+6. **Open the app** in your browser at the URL Vite prints (usually `http://localhost:5173`). Allow **microphone** access when the browser asks so the call can run.
 
 You can click **Start practice** without a resume (the assistant will note missing resume text). Uploading a resume injects that text into the system prompt.
 

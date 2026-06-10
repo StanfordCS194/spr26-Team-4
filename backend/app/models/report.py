@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 ReportSentiment = Literal["positive", "neutral", "negative"]
 AgentType = Literal["tech", "finance", "consulting", "other"]
-# modified score report request to include agentType
+
 
 # The frontend caps transcripts at 8,000 chars; these limits leave headroom
 # while keeping oversized payloads from reaching the LLM providers.

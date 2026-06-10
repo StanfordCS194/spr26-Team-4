@@ -1,10 +1,4 @@
-/* App.tsx
-
-Main entry point for the application.
-Responsible for loading all app states and UI:
-    onboarding, setup, in-call, report, saved sessions, KPIs
-*/
-
+// App shell: routes between onboarding, setup, in-call, report, saved sessions, and KPIs.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { History, Moon, Sun } from 'lucide-react'
@@ -175,7 +169,6 @@ export default function App() {
     void startCall(character, resumeText, jobDescriptionText)
   }, [character, resumeText, jobDescriptionText, startCall])
 
-  // POSTs the current job description to the backend classify endpoint and updates the selected character
   const handleRecommendInterviewer = useCallback(() => {
     if (!jobDescriptionText.trim()) return
 
@@ -232,12 +225,10 @@ export default function App() {
     </button>
   )
 
-  // Render onboarding for first-time users
   if (!onboardingResult) {
     return <OnboardingView onComplete={handleOnboardingComplete} />
   }
 
-  // Render history list and details before interview starts
   if (appView === 'past-sessions') {
     return (
       <PastSessionsView
@@ -285,7 +276,6 @@ export default function App() {
     )
   }
 
-  // Render interview lifecycle and voice agent last.
   return (
     <div className={PAGE_CLASS}>
       <div className={SHELL_CLASS}>

@@ -1,10 +1,8 @@
-// here we select the persona, domain context, and question framing for the given agent type
-// then we inject the resume and job description (if provided) directly into the returned prompt string
+// Builds the interviewer system prompt: persona and question framing for the
+// chosen agent type, with the resume and job description injected when provided.
 
-// we set up 4 different interviewers depending on what job the user is looking to prepare for
 export type InterviewCharacter = 'tech' | 'finance' | 'consulting' | 'other'
 
-// PERSON struct set up for each interviewer matched a specific role and instructions to simulate a real interview
 const PERSONA: Record<
   InterviewCharacter,
   { name: string; title: string; domain: string; voiceNote: string; personality: string }
@@ -47,7 +45,6 @@ const PERSONA: Record<
   },
 }
 
-// each four agent asks different questions based on their domain
 const DOMAIN_QUESTIONS: Record<InterviewCharacter, { q1: string; q2: string; q3: string }> = {
   tech: {
     q1: 'collaboration or technical ownership example',
@@ -71,7 +68,6 @@ const DOMAIN_QUESTIONS: Record<InterviewCharacter, { q1: string; q2: string; q3:
   },
 }
 
-// now that we have the instructions and roles set for each interviewer, we build a system prompt with all their information and a specific prompt fed into the LLM
 export function buildSystemPrompt(
   character: InterviewCharacter,
   resumeText: string,

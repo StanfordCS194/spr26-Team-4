@@ -17,8 +17,6 @@ const VOICE: Record<InterviewCharacter, string> = {
   other: 'paul', // replace with a valid 11labs voice ID for Alex
 }
 
-// this composes the complete Vapi assistant config by passing all three string inputs (character, resume, job) to buildSystemPrompt
-// then it wires the result into the Claude model's system message with voice and transcriber settings
 export function buildAssistantConfig(
   character: InterviewCharacter,
   resumeText: string,
@@ -48,6 +46,6 @@ export function buildAssistantConfig(
     firstMessageMode: 'assistant-speaks-first',
     maxDurationSeconds: 600,
     clientMessages: ['transcript', 'conversation-update'] as unknown as CreateAssistantDTO['clientMessages'],
-    endCallPhrases: ['Best of luck', 'Good luck with your', 'Best of luck with your'], // added phrases that indicate the call should automatically be ended
+    endCallPhrases: ['Best of luck', 'Good luck with your', 'Best of luck with your'],
   }
 }

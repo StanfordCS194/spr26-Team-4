@@ -1,11 +1,9 @@
-# import gemini model to use for transcript recording
 import os
 import google.generativeai as genai
 
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 
-# set gemini api key
 def _gemini_config() -> tuple[str, str]:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip()
@@ -14,7 +12,6 @@ def _gemini_config() -> tuple[str, str]:
     return api_key, model
 
 
-# give user feedback based on transcript
 async def generate_gemini_text(prompt: str) -> str:
     api_key, model_name = _gemini_config()
     genai.configure(api_key=api_key)

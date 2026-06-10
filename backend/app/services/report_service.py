@@ -65,8 +65,8 @@ def _normalize_improvements(value: Any) -> list[str] | None:
     return cleaned[:3]
 
 
-# this function builds a Gemini scoring prompt that includes job description and agent type context; it's the eprompt we feed for scoring
-# the returned improvements are tailored to the specific role this time, instead of being generic
+# Job description and agent type are folded into the prompt so the returned
+# improvements are tailored to the specific role instead of being generic.
 async def score_interview_feedback(payload: ScoreReportRequest) -> ReportFeedback:
     job_ctx = ""
     if payload.jobDescription.strip():
@@ -126,8 +126,6 @@ Candidate transcript:
     )
 
 
-# then we send the job description to gemini with the classification prompt
-# the function also parses the JSON response to return one of the four agent types and defaults to "other" in case Gemini's output is not parseable
 async def classify_job_description(job_description: str) -> ClassifyJobResponse:
     prompt = f"""You are classifying a job description into one of four interview categories.
 Return JSON only with this schema:

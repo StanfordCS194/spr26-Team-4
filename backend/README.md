@@ -42,6 +42,7 @@ GEMINI_API_KEY=
 | Command | Purpose |
 | --- | --- |
 | `python -m uvicorn app.main:app --reload --port 3001` | Start backend in watch mode |
+| `python -m pytest` | Run the backend test suite (`tests/`) |
 | `python -m compileall app` | Syntax-check backend modules |
 
 FastAPI docs are available at `http://localhost:3001/docs` while the backend is running.

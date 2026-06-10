@@ -5,3 +5,7 @@ httpx
 pypdf
 google-generativeai
 litellm
+
+# Test
+pytest
+pytest-asyncio

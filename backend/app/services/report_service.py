@@ -21,20 +21,26 @@ def _normalize_sentiment(value: Any) -> ReportSentiment | None:
     return None
 
 
+def _loads_dict(text: str) -> dict[str, Any] | None:
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    # The LLM may return a JSON array or scalar; only an object is usable.
+    return parsed if isinstance(parsed, dict) else None
+
+
 def _parse_model_json(text: str) -> dict[str, Any] | None:
     trimmed = text.strip()
     if not trimmed:
         return None
-    try:
-        return json.loads(trimmed)
-    except json.JSONDecodeError:
-        fenced = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", trimmed, re.I)
-        if not fenced:
-            return None
-        try:
-            return json.loads(fenced.group(1))
-        except json.JSONDecodeError:
-            return None
+    parsed = _loads_dict(trimmed)
+    if parsed is not None:
+        return parsed
+    fenced = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", trimmed, re.I)
+    if not fenced:
+        return None
+    return _loads_dict(fenced.group(1))
 
 
 _IMPROVEMENT_PLACEHOLDER = "Review your response for clarity and conciseness."
@@ -88,7 +94,7 @@ Scoring guidance:
 - Improvements: actionable, specific, and tailored to this transcript and role.
 {job_ctx}{agent_ctx}
 Candidate transcript:
-{payload.transcriptSummary or payload.userText or "(empty transcript)"}"""
+{(payload.transcriptSummary or payload.userText or "(empty transcript)")[:8000]}"""
 
     text = await generate_text_with_fallback(prompt)
 

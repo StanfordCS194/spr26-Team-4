@@ -114,10 +114,10 @@ export function useVapiInterview() {
     const conv = conversationRef.current
     const chunks = transcriptChunks.current
 
+    // summarizeFromConversation drops system/tool messages, so it can come back
+    // empty even when conv is non-empty — fall back to raw transcript chunks.
     const transcriptSummary =
-      conv.length > 0
-        ? summarizeFromConversation(conv)
-        : summarizeFromTranscriptChunks(chunks)
+      summarizeFromConversation(conv) || summarizeFromTranscriptChunks(chunks)
 
     const userSpeech = extractUserSpeech(chunks)
     let clarityScore = 0
@@ -301,10 +301,22 @@ export function useVapiInterview() {
       })
 
       vapi.on('error', (e: unknown) => {
-        const msg =
-          e && typeof e === 'object' && 'error' in e
-            ? JSON.stringify((e as { error: unknown }).error)
-            : String(e)
+        const err = e && typeof e === 'object' ? (e as Record<string, unknown>) : null
+        const inner =
+          err && err.error && typeof err.error === 'object'
+            ? (err.error as Record<string, unknown>)
+            : null
+        // Daily ejects the client when the room closes (assistant endCall,
+        // maxDurationSeconds). It arrives as an error event, but it just means
+        // the call is over — finalize instead of surfacing a failure.
+        const ejected =
+          inner?.type === 'ejected' ||
+          /meeting has ended/i.test(String(err?.errorMsg ?? inner?.msg ?? ''))
+        if (ejected && (callStartedAt.current != null || finalizedRef.current)) {
+          void finalizeSession() // no-op when the session already finalized
+          return
+        }
+        const msg = inner ? JSON.stringify(inner) : String(e)
         setError(msg)
       })
 

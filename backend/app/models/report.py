@@ -1,18 +1,19 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 ReportSentiment = Literal["positive", "neutral", "negative"]
 AgentType = Literal["tech", "finance", "consulting", "other"]
 # modified score report request to include agentType
 
-
+# The frontend caps transcripts at 8,000 chars; these limits leave headroom
+# while keeping oversized payloads from reaching the LLM providers.
 class ScoreReportRequest(BaseModel):
-    userText: str = ""
-    transcriptSummary: str = ""
-    jobDescription: str = ""
-    agentType: str = ""
+    userText: str = Field(default="", max_length=20_000)
+    transcriptSummary: str = Field(default="", max_length=20_000)
+    jobDescription: str = Field(default="", max_length=20_000)
+    agentType: str = Field(default="", max_length=50)
 
 
 class ReportFeedback(BaseModel):
@@ -24,7 +25,7 @@ class ReportFeedback(BaseModel):
 
 
 class ClassifyJobRequest(BaseModel):
-    jobDescription: str
+    jobDescription: str = Field(max_length=20_000)
 
 
 class ClassifyJobResponse(BaseModel):

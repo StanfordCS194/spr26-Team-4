@@ -94,12 +94,12 @@ export default function App() {
     // Theme classes live on <html> so shared CSS can style every view consistently.
     document.documentElement.classList.toggle('theme-light', theme === 'light')
     document.documentElement.classList.toggle('theme-dark', theme === 'dark')
-    localStorage.setItem(THEME_STORAGE_KEY, theme)
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {
+      // Storage full/disabled — theme still applies for this session.
+    }
   }, [theme])
-
-  useEffect(() => {
-    if (phase !== 'in-call') setImmersiveMode(false)
-  }, [phase])
 
   useEffect(() => {
     if (phase !== 'setup') return
@@ -169,6 +169,9 @@ export default function App() {
   const callError = error && error !== parseError ? error : null
 
   const beginPractice = useCallback(() => {
+    // The immersive view only renders during in-call, so clearing the stale
+    // flag here (instead of in a phase effect) keeps the next call windowed.
+    setImmersiveMode(false)
     void startCall(character, resumeText, jobDescriptionText)
   }, [character, resumeText, jobDescriptionText, startCall])
 

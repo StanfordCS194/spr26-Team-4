@@ -121,7 +121,11 @@ export function completeOnboarding(answers: OnboardingAnswers): OnboardingResult
     assignedCharacter,
     answers,
   }
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(result))
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(result))
+  } catch {
+    // Storage full/disabled — onboarding still completes for this session.
+  }
   return result
 }
 

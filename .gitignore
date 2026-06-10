@@ -12,6 +12,7 @@
 !**/env.example
 
 # Node / frontend
+logs/
 node_modules/
 dist/
 dist-ssr/
@@ -22,6 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.local
 
 # Python / backend
 __pycache__/
@@ -29,3 +31,10 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Editor / IDE extras
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

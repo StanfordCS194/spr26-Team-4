@@ -3,9 +3,9 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.routes.report import router as report_router
 from app.routes.resume import router as resume_router
+from app.routes.transcript import router as transcript_router
 
 
 load_dotenv()
@@ -30,3 +30,4 @@ async def health() -> dict[str, bool]:
 
 app.include_router(resume_router)
 app.include_router(report_router)
+app.include_router(transcript_router)

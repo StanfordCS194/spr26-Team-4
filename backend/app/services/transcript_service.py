@@ -151,7 +151,7 @@ def _build_strengths(star_signals: list[StarSignal], specificity_score: int, cla
 
     detected_categories = [signal.category for signal in star_signals if signal.detected]
 
-    if len detected_categories >= 3:
+    if len(detected_categories) >= 3:
         strengths.append("The response includes several parts of the STAR structure.")
 
     if specificity_score >= 7:

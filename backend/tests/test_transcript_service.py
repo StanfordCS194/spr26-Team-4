@@ -46,3 +46,72 @@ async def test_star_detection_finds_action_and_result():
 
     assert "action" in detected
     assert "result" in detected
+
+@pytest.mark.asyncio
+async def test_filler_words_are_counted():
+    payload = TranscriptAnalysisRequest(
+        transcript=(
+            "Um, I basically worked on the project and, like, "
+            "I kind of helped the team organize the dashboard."
+        )
+    )
+
+    result = await analyze_transcript(payload)
+
+    assert result.metrics.fillerWordCount > 0
+    assert len(result.metrics.fillerWordsDetected) > 0
+
+
+@pytest.mark.asyncio
+async def test_specificity_score_rewards_numbers_and_impact():
+    payload = TranscriptAnalysisRequest(
+        transcript=(
+            "During my internship, I built a dashboard improvement for 40 users. "
+            "Because the old workflow was slow, I implemented filters and reduced "
+            "search time by 30 percent."
+        )
+    )
+
+    result = await analyze_transcript(payload)
+
+    assert result.specificityScore >= 5
+
+
+@pytest.mark.asyncio
+async def test_clarity_score_exists_for_short_transcript():
+    payload = TranscriptAnalysisRequest(
+        transcript="I helped my team build a dashboard."
+    )
+
+    result = await analyze_transcript(payload)
+
+    assert 1 <= result.clarityScore <= 10
+
+
+@pytest.mark.asyncio
+async def test_response_includes_strengths_and_improvements():
+    payload = TranscriptAnalysisRequest(
+        transcript=(
+            "I worked on a team project. "
+            "I helped with the implementation and learned from the process."
+        )
+    )
+
+    result = await analyze_transcript(payload)
+
+    assert len(result.strengths) > 0
+    assert len(result.improvementAreas) > 0
+
+
+@pytest.mark.asyncio
+async def test_estimated_speaking_time_is_calculated():
+    payload = TranscriptAnalysisRequest(
+        transcript=(
+            "During my internship I built a tool for my team. "
+            "The tool helped organize information and made the workflow easier."
+        )
+    )
+
+    result = await analyze_transcript(payload)
+
+    assert result.metrics.estimatedSpeakingSeconds > 0
